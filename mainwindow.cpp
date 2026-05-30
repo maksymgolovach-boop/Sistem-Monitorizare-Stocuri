@@ -9,6 +9,10 @@
 #include <QHeaderView>
 #include <QMessageBox>
 #include <algorithm>
+#include <QMenu>
+#include <QFileDialog>
+#include <QDateTime>
+#include "exportmanager.h"
 #include "../NivelUI/addproductdialog.h"
 #include "../NivelUI/transactiondialog.h"
 #include "../NivelUI/editproductdialog.h"
@@ -619,6 +623,44 @@ void MainWindow::setupAlertsPage(QWidget *page) {
         m_sortAlerte = mapare[index];
         populateAlertsTable();
     });
+
+    // --- 5. EXPORT ---
+    connect(btnExportReport, &QPushButton::clicked, this, [this]() {
+        QMenu menu(this);
+        QAction *csvAct = menu.addAction("📄  Export CSV");
+        QAction *pdfAct = menu.addAction("📋  Export PDF");
+        QAction *chosen = menu.exec(
+            btnExportReport->mapToGlobal(QPoint(0, btnExportReport->height())));
+
+        if (chosen == csvAct) {
+            QString file = QFileDialog::getSaveFileName(
+                this, "Salvează CSV", "alerte_stoc.csv", "CSV (*.csv)");
+            if (file.isEmpty()) return;
+            if (ExportManager::exportCSV(file, alertsTable))
+                QMessageBox::information(this, "Export reușit",
+                    "Fișierul CSV a fost salvat cu succes:\n" + file);
+            else
+                QMessageBox::critical(this, "Eroare export",
+                    "Nu s-a putut scrie fișierul CSV.");
+
+        } else if (chosen == pdfAct) {
+            QString file = QFileDialog::getSaveFileName(
+                this, "Salvează PDF", "alerte_stoc.pdf", "PDF (*.pdf)");
+            if (file.isEmpty()) return;
+            const int n = static_cast<int>(depozit.produseSubPrag().size());
+            const QStringList info = {
+                QString("Total produse sub prag de alertă: %1").arg(n),
+                QString("Raport generat la: %1")
+                    .arg(QDateTime::currentDateTime().toString("dd/MM/yyyy HH:mm"))
+            };
+            if (ExportManager::exportPDF(file, alertsTable, "Raport Alerte Stoc", info))
+                QMessageBox::information(this, "Export reușit",
+                    "Raportul PDF a fost salvat cu succes:\n" + file);
+            else
+                QMessageBox::critical(this, "Eroare export",
+                    "Nu s-a putut genera fișierul PDF.");
+        }
+    });
 }
 
 void MainWindow::populateAlertsTable()
@@ -740,6 +782,55 @@ void MainWindow::setupHistoryPage(QWidget *page) {
     });
 
     populateHistoryTable();
+
+    // --- 4. EXPORT ---
+    connect(btnExportHistory, &QPushButton::clicked, this, [this]() {
+        QMenu menu(this);
+        QAction *csvAct = menu.addAction("📄  Export CSV");
+        QAction *pdfAct = menu.addAction("📋  Export PDF");
+        QAction *chosen = menu.exec(
+            btnExportHistory->mapToGlobal(QPoint(0, btnExportHistory->height())));
+
+        if (chosen == csvAct) {
+            QString file = QFileDialog::getSaveFileName(
+                this, "Salvează CSV", "istoric_tranzactii.csv", "CSV (*.csv)");
+            if (file.isEmpty()) return;
+            if (ExportManager::exportCSV(file, historyTable))
+                QMessageBox::information(this, "Export reușit",
+                    "Fișierul CSV a fost salvat cu succes:\n" + file);
+            else
+                QMessageBox::critical(this, "Eroare export",
+                    "Nu s-a putut scrie fișierul CSV.");
+
+        } else if (chosen == pdfAct) {
+            QString file = QFileDialog::getSaveFileName(
+                this, "Salvează PDF", "istoric_tranzactii.pdf", "PDF (*.pdf)");
+            if (file.isEmpty()) return;
+
+            // Calculăm statisticile sumar pentru header-ul PDF-ului
+            double valAchiz = 0.0, valVanz = 0.0;
+            int nrAchiz = 0, nrVanz = 0;
+            for (const auto &t : istoric.toate()) {
+                if (t.tip() == TipTranzactie::Achizitionare) {
+                    valAchiz += t.valoareTotala(); ++nrAchiz;
+                } else {
+                    valVanz  += t.valoareTotala(); ++nrVanz;
+                }
+            }
+            const QStringList info = {
+                QString("Total tranzacții: %1  |  Achiziții: %2  |  Vânzări: %3")
+                    .arg(istoric.numar()).arg(nrAchiz).arg(nrVanz),
+                QString("Valoare totală achiziții: %1 RON  |  Valoare totală vânzări: %2 RON")
+                    .arg(valAchiz, 0, 'f', 2).arg(valVanz, 0, 'f', 2)
+            };
+            if (ExportManager::exportPDF(file, historyTable, "Raport Istoric Tranzacții", info))
+                QMessageBox::information(this, "Export reușit",
+                    "Raportul PDF a fost salvat cu succes:\n" + file);
+            else
+                QMessageBox::critical(this, "Eroare export",
+                    "Nu s-a putut genera fișierul PDF.");
+        }
+    });
 }
 
 void MainWindow::populateHistoryTable() {
