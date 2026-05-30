@@ -58,19 +58,27 @@ bool ExportManager::exportPDF(const QString     &caleFisier,
                                const QStringList &infoLines)
 {
     if (!table) return false;
+    return exportHTMLtoPDF(caleFisier,
+                           buildHTML(table, titlu, infoLines),
+                           /*landscape=*/true);
+}
 
+bool ExportManager::exportHTMLtoPDF(const QString &caleFisier,
+                                     const QString &html,
+                                     bool           landscape)
+{
     QPrinter printer(QPrinter::HighResolution);
     printer.setOutputFormat(QPrinter::PdfFormat);
     printer.setOutputFileName(caleFisier);
     printer.setPageSize(QPageSize(QPageSize::A4));
-    printer.setPageOrientation(QPageLayout::Landscape);
+    printer.setPageOrientation(landscape ? QPageLayout::Landscape
+                                         : QPageLayout::Portrait);
     printer.setPageMargins(QMarginsF(15, 15, 15, 15), QPageLayout::Millimeter);
 
     QTextDocument doc;
-    doc.setHtml(buildHTML(table, titlu, infoLines));
+    doc.setHtml(html);
     doc.print(&printer);
 
-    // QPrinter::PdfFormat nu aruncă excepții — verificăm dacă fișierul a apărut
     return QFile::exists(caleFisier);
 }
 

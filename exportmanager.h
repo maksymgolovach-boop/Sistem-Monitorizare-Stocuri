@@ -52,6 +52,16 @@ public:
                           const QString    &titlu,
                           const QStringList &infoLines = {});
 
+    /**
+     * @brief Randează un document HTML gata construit ca fișier PDF.
+     *
+     * Folosit intern de exportPDF() și de generateInvoice() din MainWindow.
+     * @param landscape  true = orientare Landscape; false (implicit) = Portrait.
+     */
+    static bool exportHTMLtoPDF(const QString &caleFisier,
+                                 const QString &html,
+                                 bool           landscape = false);
+
 private:
     /** Înconjură un câmp cu ghilimele duble și escapează ghilimelele interne. */
     static QString csvQuote(const QString &s);

@@ -105,7 +105,6 @@ void MainWindow::setupLayout() {
     stackedWidget->addWidget(dashboardPage);        // Index 0
     stackedWidget->addWidget(productsPage);         // Index 1
     stackedWidget->addWidget(alertsPage);           // Index 2
-
     stackedWidget->addWidget(transactionsPage);     // Index 3
 }
 
@@ -731,8 +730,9 @@ void MainWindow::setupHistoryPage(QWidget *page) {
     mainLayout->setContentsMargins(20, 20, 20, 20);
     mainLayout->setSpacing(15);
 
-    // --- 1. BARA DE SUS (Căutare și Filtre) ---
+    // --- 1. BARA DE SUS: Căutare + Factură + Export ---
     QHBoxLayout *topBarLayout = new QHBoxLayout();
+    topBarLayout->setSpacing(10);
 
     searchHistoryBar = new QLineEdit();
     searchHistoryBar->setPlaceholderText("Caută după produs, companie sau ID tranzacție...");
@@ -740,13 +740,55 @@ void MainWindow::setupHistoryPage(QWidget *page) {
     searchHistoryBar->setMinimumHeight(35);
     searchHistoryBar->setClearButtonEnabled(true);
 
+    btnFactura = new QPushButton("🖨  Scoate Factură");
+    btnFactura->setObjectName("BtnDialogSave");
+    btnFactura->setMinimumHeight(35);
+    btnFactura->setCursor(Qt::PointingHandCursor);
+    btnFactura->setEnabled(false);   // activ doar când e selectat un rând
+
     btnExportHistory = new QPushButton("Exportă Istoric");
-    btnExportHistory->setObjectName("BtnFilter"); // Stilul gri definit anterior
+    btnExportHistory->setObjectName("BtnFilter");
     btnExportHistory->setMinimumHeight(35);
 
     topBarLayout->addWidget(searchHistoryBar, 4);
+    topBarLayout->addWidget(btnFactura, 1);
     topBarLayout->addWidget(btnExportHistory, 1);
     mainLayout->addLayout(topBarLayout);
+
+    // --- 2. BARA DE FILTRARE DATĂ ---
+    QHBoxLayout *dateBarLayout = new QHBoxLayout();
+    dateBarLayout->setSpacing(8);
+
+    QLabel *lblDate = new QLabel("📅  Interval:");
+    lblDate->setStyleSheet("color: #495057; font-weight: bold;");
+
+    dateFilterFrom = new QDateEdit(QDate(2000, 1, 1));
+    dateFilterFrom->setCalendarPopup(true);
+    dateFilterFrom->setDisplayFormat("dd/MM/yyyy");
+    dateFilterFrom->setMinimumHeight(32);
+    dateFilterFrom->setObjectName("ModernInput");
+
+    QLabel *lblArrow = new QLabel("→");
+    lblArrow->setStyleSheet("color: #6c757d;");
+
+    dateFilterTo = new QDateEdit(QDate::currentDate());
+    dateFilterTo->setCalendarPopup(true);
+    dateFilterTo->setDisplayFormat("dd/MM/yyyy");
+    dateFilterTo->setMinimumHeight(32);
+    dateFilterTo->setObjectName("ModernInput");
+
+    btnResetDate = new QPushButton("✕ Resetează");
+    btnResetDate->setObjectName("BtnFilter");
+    btnResetDate->setMinimumHeight(32);
+    btnResetDate->setCursor(Qt::PointingHandCursor);
+
+    dateBarLayout->addWidget(lblDate);
+    dateBarLayout->addWidget(dateFilterFrom);
+    dateBarLayout->addWidget(lblArrow);
+    dateBarLayout->addWidget(dateFilterTo);
+    dateBarLayout->addWidget(btnResetDate);
+    dateBarLayout->addStretch();
+    mainLayout->addLayout(dateBarLayout);
 
     // --- 2. TABELUL DE TRANZACȚII ---
     historyTable = new QTableWidget();
@@ -766,19 +808,28 @@ void MainWindow::setupHistoryPage(QWidget *page) {
 
     mainLayout->addWidget(historyTable);
 
-    // --- 3. LOGICA DE CĂUTARE DINAMICĂ ---
-    connect(searchHistoryBar, &QLineEdit::textChanged, this, [this](const QString &text) {
-        QString t = text.toLower();
-        for (int i = 0; i < historyTable->rowCount(); ++i) {
-            bool match = false;
-            // Căutăm în ID (Col 1), Produs (Col 2) și Companie (Col 4)
-            if (historyTable->item(i, 1)->text().toLower().contains(t) ||
-                historyTable->item(i, 2)->text().toLower().contains(t) ||
-                historyTable->item(i, 4)->text().toLower().contains(t)) {
-                match = true;
-            }
-            historyTable->setRowHidden(i, !match);
-        }
+    // --- 3. CĂUTARE + FILTRU DATĂ ---
+    connect(searchHistoryBar, &QLineEdit::textChanged,
+            this, [this]() { applyHistoryFilter(); });
+    connect(dateFilterFrom, &QDateEdit::dateChanged,
+            this, [this]() { applyHistoryFilter(); });
+    connect(dateFilterTo, &QDateEdit::dateChanged,
+            this, [this]() { applyHistoryFilter(); });
+    connect(btnResetDate, &QPushButton::clicked, this, [this]() {
+        dateFilterFrom->setDate(QDate(2000, 1, 1));
+        dateFilterTo->setDate(QDate::currentDate());
+        applyHistoryFilter();
+    });
+
+    // Activează butonul de factură doar când e selectat un rând
+    connect(historyTable, &QTableWidget::itemSelectionChanged, this, [this]() {
+        btnFactura->setEnabled(historyTable->selectionModel()->hasSelection());
+    });
+
+    // Generare factură
+    connect(btnFactura, &QPushButton::clicked, this, [this]() {
+        int row = historyTable->currentRow();
+        if (row >= 0) generateInvoice(row);
     });
 
     populateHistoryTable();
@@ -843,9 +894,11 @@ void MainWindow::populateHistoryTable() {
         int row = historyTable->rowCount();
         historyTable->insertRow(row);
 
-        // 1. Data și Ora (formatate frumos)
+        // 1. Data și Ora (formatate frumos); QDateTime stocat în UserRole pentru filtrul de dată
         QString dataStr = t.timestamp().toString("dd/MM/yyyy HH:mm");
-        historyTable->setItem(row, 0, new QTableWidgetItem(dataStr));
+        QTableWidgetItem *dateItem = new QTableWidgetItem(dataStr);
+        dateItem->setData(Qt::UserRole, t.timestamp());
+        historyTable->setItem(row, 0, dateItem);
 
         // 2. ID Tranzacție (folosim font monospace pentru aspect tehnic)
         QTableWidgetItem *idItem = new QTableWidgetItem(t.id());
@@ -976,6 +1029,169 @@ void MainWindow::applyAlertsSearch()
         bool match = text.isEmpty() || (item && item->text().toLower().contains(text));
         alertsTable->setRowHidden(row, !match);
     }
+}
+
+void MainWindow::applyHistoryFilter()
+{
+    if (!searchHistoryBar || !historyTable || !dateFilterFrom || !dateFilterTo)
+        return;
+
+    const QString text  = searchHistoryBar->text().toLower();
+    const QDate   from  = dateFilterFrom->date();
+    const QDate   to    = dateFilterTo->date();
+
+    for (int i = 0; i < historyTable->rowCount(); ++i) {
+        // ── Filtru text: ID (col 1), Produs (col 2), Companie (col 4) ──────────
+        bool textOk = text.isEmpty();
+        if (!textOk) {
+            auto cell = [&](int col) -> QString {
+                auto *it = historyTable->item(i, col);
+                return it ? it->text().toLower() : QString();
+            };
+            textOk = cell(1).contains(text) ||
+                     cell(2).contains(text) ||
+                     cell(4).contains(text);
+        }
+
+        // ── Filtru dată: compară QDate din UserRole al col 0 ──────────────────
+        bool dateOk = true;
+        if (auto *it = historyTable->item(i, 0)) {
+            QDate rowDate = it->data(Qt::UserRole).toDateTime().date();
+            if (rowDate.isValid())
+                dateOk = (rowDate >= from && rowDate <= to);
+        }
+
+        historyTable->setRowHidden(i, !(textOk && dateOk));
+    }
+}
+
+void MainWindow::generateInvoice(int row)
+{
+    auto *idItem = historyTable->item(row, 1);
+    if (!idItem) return;
+    const QString tranzId = idItem->text();
+
+    // Găsim tranzacția în istoric după ID
+    const TranzactieProdus *tPtr = nullptr;
+    for (const auto &t : istoric.toate())
+        if (t.id() == tranzId) { tPtr = &t; break; }
+    if (!tPtr) return;
+    const TranzactieProdus &t = *tPtr;
+
+    const QString defaultName =
+        QString("factura_%1.pdf").arg(t.id().left(8).toUpper());
+    QString file = QFileDialog::getSaveFileName(
+        this, "Salvează Factură PDF", defaultName, "PDF (*.pdf)");
+    if (file.isEmpty()) return;
+
+    // ── Construim HTML-ul facturii ────────────────────────────────────────────
+    const bool     isAchiz    = (t.tip() == TipTranzactie::Achizitionare);
+    const QString  tipColor   = isAchiz ? "#198754" : "#dc3545";
+    const QString  tipLabel   = isAchiz ? "ACHIZIȚIE" : "VÂNZARE";
+    const QString  partyLabel = isAchiz ? "Furnizor" : "Client";
+    const QString  invNumber  = t.id().left(8).toUpper();
+    const QString  dataStr    = t.timestamp().toString("dd/MM/yyyy  HH:mm");
+
+    const QString html = QString(R"(
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #212529; }
+  .header-table { width: 100%%; border-bottom: 3px solid #212529;
+                  margin-bottom: 16px; padding-bottom: 12px; }
+  .co-name  { font-size: 17pt; font-weight: bold; }
+  .co-sub   { font-size: 8.5pt; color: #6c757d; margin-top: 3px; }
+  .inv-type { font-size: 15pt; font-weight: bold; color: %1; }
+  .inv-meta { font-size: 9pt; color: #6c757d; margin-top: 3px; }
+  .parties  { width: 100%%; margin-bottom: 18px; }
+  .lbl      { font-size: 7.5pt; color: #6c757d; text-transform: uppercase;
+               letter-spacing: 0.5px; margin-bottom: 3px; }
+  .val      { font-size: 12pt; font-weight: bold; }
+  table.items { border-collapse: collapse; width: 100%%; margin: 12px 0; }
+  table.items thead tr { background-color: #212529; color: white; }
+  table.items th { padding: 7px 10px; text-align: left; font-size: 9pt; }
+  table.items td { padding: 7px 10px; border-bottom: 1px solid #dee2e6; }
+  .total-block { text-align: right; margin-top: 8px; }
+  .total-val   { font-size: 14pt; font-weight: bold; color: %1; }
+  .footer { margin-top: 30px; border-top: 1px solid #dee2e6; padding-top: 8px;
+             font-size: 7.5pt; color: #adb5bd; }
+  .mono   { font-family: monospace; }
+</style>
+</head>
+<body>
+<table class="header-table" cellpadding="0" cellspacing="0">
+  <tr>
+    <td>
+      <div class="co-name">Sistem Monitorizare Stocuri</div>
+      <div class="co-sub">Software de gestiune depozit</div>
+    </td>
+    <td align="right">
+      <div class="inv-type">FACTURĂ %2</div>
+      <div class="inv-meta">Nr.&nbsp;%3</div>
+      <div class="inv-meta">%4</div>
+    </td>
+  </tr>
+</table>
+
+<table class="parties" cellpadding="0" cellspacing="0">
+  <tr>
+    <td width="50%%">
+      <div class="lbl">%5</div>
+      <div class="val">%6</div>
+    </td>
+    <td width="50%%">
+      <div class="lbl">Produs</div>
+      <div class="val">%7</div>
+    </td>
+  </tr>
+</table>
+
+<table class="items">
+  <thead>
+    <tr>
+      <th>Descriere produs</th>
+      <th>Cantitate</th>
+      <th>Preț unitar (RON)</th>
+      <th>Valoare totală (RON)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>%7</td>
+      <td align="center">%8 buc.</td>
+      <td align="right">%9</td>
+      <td align="right">%10</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="total-block">
+  <span class="total-val">TOTAL DE PLATĂ:&nbsp;&nbsp;%10 RON</span>
+</div>
+
+<div class="footer">
+  Document generat automat &mdash; Sistem Monitorizare Stocuri<br/>
+  <span class="mono">ID Tranzacție: %11</span>
+</div>
+</body></html>
+)")
+        .arg(tipColor)                                      // %1
+        .arg(tipLabel)                                      // %2
+        .arg(invNumber)                                     // %3
+        .arg(dataStr)                                       // %4
+        .arg(partyLabel)                                    // %5
+        .arg(t.numeCompanie().toHtmlEscaped())              // %6
+        .arg(t.numeProdus().toHtmlEscaped())                // %7
+        .arg(t.cantitate())                                 // %8
+        .arg(QString::number(t.pretUnitar(),    'f', 2))   // %9
+        .arg(QString::number(t.valoareTotala(), 'f', 2))   // %10
+        .arg(t.id());                                       // %11
+
+    if (ExportManager::exportHTMLtoPDF(file, html, /*landscape=*/false))
+        QMessageBox::information(this, "Factură generată",
+            "Factura PDF a fost salvată cu succes:\n" + file);
+    else
+        QMessageBox::critical(this, "Eroare",
+            "Nu s-a putut genera factura PDF.");
 }
 
 void MainWindow::showProductDetails(const QString &produsId)

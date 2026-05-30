@@ -11,6 +11,7 @@
 #include <QTableWidget>
 #include <QLabel>
 #include <QComboBox>
+#include <QDateEdit>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -55,6 +56,12 @@ private:
 
     void onBtnSalesClicked();
     void UpdateUI();
+
+    /** Aplică simultan filtrul text + filtrul dată pe historyTable. */
+    void applyHistoryFilter();
+
+    /** Generează factura PDF pentru rândul selectat din historyTable. */
+    void generateInvoice(int row);
 
     void applyProductsSearch();
     void applyAlertsSearch();
@@ -102,8 +109,12 @@ private:
     QTableWidget *alertsTable;
 
     // Elemente UI pentru pagina de istoric tranzactii
-    QTableWidget *historyTable;
-    QLineEdit *searchHistoryBar;
-    QPushButton *btnExportHistory;
+    QTableWidget *historyTable        = nullptr;
+    QLineEdit    *searchHistoryBar    = nullptr;
+    QPushButton  *btnExportHistory    = nullptr;
+    QPushButton  *btnFactura          = nullptr;
+    QDateEdit    *dateFilterFrom      = nullptr;
+    QDateEdit    *dateFilterTo        = nullptr;
+    QPushButton  *btnResetDate        = nullptr;
 };
 #endif // MAINWINDOW_H
