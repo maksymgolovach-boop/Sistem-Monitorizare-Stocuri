@@ -10,7 +10,6 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     MainWindow w;
-    w.show();
     QFile styleFile(":/styles/styles.qss");
 
     if (!styleFile.open(QFile::ReadOnly))
@@ -18,6 +17,6 @@ int main(int argc, char *argv[])
 
     QString style = styleFile.readAll();
     qApp->setStyleSheet(style);
-
+    w.show();
     return a.exec();
 }
