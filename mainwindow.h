@@ -59,6 +59,9 @@ private:
     void applyProductsSearch();
     void applyAlertsSearch();
 
+    /** Deschide ProductDetailsDialog pentru produsul cu ID-ul dat. */
+    void showProductDetails(const QString &produsId);
+
     // Zonele principale
     QWidget *sidebar;
     QWidget *header;

@@ -12,6 +12,7 @@
 #include "../NivelUI/addproductdialog.h"
 #include "../NivelUI/transactiondialog.h"
 #include "../NivelUI/editproductdialog.h"
+#include "../NivelUI/productdetailsdialog.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -198,6 +199,13 @@ void MainWindow::setupDashboardPage(QWidget *page){
 
     // Populăm imediat cu datele existente
     populateDashboard();
+
+    // Double-click → detalii produs (ID stocat în Qt::UserRole pe col 0)
+    connect(dashboardTable, &QTableWidget::cellDoubleClicked,
+            this, [this](int row, int) {
+        if (auto *item = dashboardTable->item(row, 0))
+            showProductDetails(item->data(Qt::UserRole).toString());
+    });
 }
 
 QWidget* MainWindow::createStatCard(QString title, QString value, QString objectName) {
@@ -255,7 +263,10 @@ void MainWindow::populateDashboard()
         int row = dashboardTable->rowCount();
         dashboardTable->insertRow(row);
 
-        dashboardTable->setItem(row, 0, new QTableWidgetItem(p->nume()));
+        // Stocăm ID-ul în UserRole pe primul item — necesar pentru double-click → detalii
+        QTableWidgetItem *numeItem = new QTableWidgetItem(p->nume());
+        numeItem->setData(Qt::UserRole, p->id());
+        dashboardTable->setItem(row, 0, numeItem);
         dashboardTable->setItem(row, 1, new QTableWidgetItem(
             QString::number(p->pret(), 'f', 2)));
         dashboardTable->setItem(row, 2, new QTableWidgetItem(
@@ -355,6 +366,13 @@ void MainWindow::setupProductsPage(QWidget* page){
 
     // --- 3. POPULARE DATE ---
     populateProductsTable();
+
+    // Double-click → detalii produs (col 0 = ID)
+    connect(productsTable, &QTableWidget::cellDoubleClicked,
+            this, [this](int row, int) {
+        if (auto *item = productsTable->item(row, 0))
+            showProductDetails(item->text());
+    });
 
     //Add button
     connect(btnAddProduct, &QPushButton::clicked, this, [this]() {
@@ -570,6 +588,13 @@ void MainWindow::setupAlertsPage(QWidget *page) {
 
     mainLayout->addWidget(alertsTable);
     populateAlertsTable();
+
+    // Double-click → detalii produs (col 0 = ID)
+    connect(alertsTable, &QTableWidget::cellDoubleClicked,
+            this, [this](int row, int) {
+        if (auto *item = alertsTable->item(row, 0))
+            showProductDetails(item->text());
+    });
 
     // --- 3. CĂUTARE DINAMICĂ ---
     connect(searchAlertsBar, &QLineEdit::textChanged, this, [this]() { applyAlertsSearch(); });
@@ -852,6 +877,21 @@ void MainWindow::applyAlertsSearch()
         bool match = text.isEmpty() || (item && item->text().toLower().contains(text));
         alertsTable->setRowHidden(row, !match);
     }
+}
+
+void MainWindow::showProductDetails(const QString &produsId)
+{
+    const Produs *p = depozit.gasesteProdusDupaId(produsId);
+    if (!p) return;
+
+    // Colectăm tranzacțiile care aparțin acestui produs (după ID-ul din payload)
+    std::vector<TranzactieProdus> tranzactiiProdus;
+    for (const auto &t : istoric.toate())
+        if (t.payload().id() == produsId)
+            tranzactiiProdus.push_back(t);
+
+    ProductDetailsDialog dialog(*p, tranzactiiProdus, this);
+    dialog.exec();
 }
 
 MainWindow::~MainWindow()
