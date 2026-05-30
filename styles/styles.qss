@@ -348,3 +348,7 @@ QPushButton#ToggleBtn[active="true"] {
 QPushButton#ToggleBtn:hover {
     background-color: #f1f3f5;
 }
+
+QLabel{
+    background-color: Transparent;
+}

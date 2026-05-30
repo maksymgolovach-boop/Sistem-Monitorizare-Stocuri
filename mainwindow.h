@@ -128,7 +128,6 @@ private:
 
     // Elemente UI pentru pagina de Alerte
     QLineEdit *searchAlertsBar;
-    QPushButton *btnExportReport;
     QTableWidget *alertsTable;
 
     // Elemente UI pentru pagina de istoric tranzactii

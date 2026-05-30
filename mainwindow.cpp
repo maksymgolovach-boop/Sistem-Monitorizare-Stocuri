@@ -724,15 +724,8 @@ void MainWindow::setupAlertsPage(QWidget *page) {
     comboFilterAlerts->addItem("Cantitate ↓ Descrescătoare");      // index 4 → CantiDesc
     comboFilterAlerts->addItem("Raport Cant./Prag ↑ (cel mai critic)"); // index 5 → Raport
 
-    // Un buton specific pentru această pagină
-    btnExportReport = new QPushButton("Export");
-    btnExportReport->setObjectName("BtnFilter");
-    btnExportReport->setMinimumHeight(35);
-    btnExportReport->setCursor(Qt::PointingHandCursor);
-
     topBarLayout->addWidget(searchAlertsBar, 4);
     topBarLayout->addWidget(comboFilterAlerts, 2);
-    topBarLayout->addWidget(btnExportReport, 1);
 
     mainLayout->addLayout(topBarLayout);
 
@@ -777,43 +770,6 @@ void MainWindow::setupAlertsPage(QWidget *page) {
         populateAlertsTable();
     });
 
-    // --- 5. EXPORT ---
-    connect(btnExportReport, &QPushButton::clicked, this, [this]() {
-        QMenu menu(this);
-        QAction *csvAct = menu.addAction("📄  Export CSV");
-        QAction *pdfAct = menu.addAction("📋  Export PDF");
-        QAction *chosen = menu.exec(
-            btnExportReport->mapToGlobal(QPoint(0, btnExportReport->height())));
-
-        if (chosen == csvAct) {
-            QString file = QFileDialog::getSaveFileName(
-                this, "Salvează CSV", "alerte_stoc.csv", "CSV (*.csv)");
-            if (file.isEmpty()) return;
-            if (ExportManager::exportCSV(file, alertsTable))
-                QMessageBox::information(this, "Export reușit",
-                    "Fișierul CSV a fost salvat cu succes:\n" + file);
-            else
-                QMessageBox::critical(this, "Eroare export",
-                    "Nu s-a putut scrie fișierul CSV.");
-
-        } else if (chosen == pdfAct) {
-            QString file = QFileDialog::getSaveFileName(
-                this, "Salvează PDF", "alerte_stoc.pdf", "PDF (*.pdf)");
-            if (file.isEmpty()) return;
-            const int n = static_cast<int>(depozit.produseSubPrag().size());
-            const QStringList info = {
-                QString("Total produse sub prag de alertă: %1").arg(n),
-                QString("Raport generat la: %1")
-                    .arg(QDateTime::currentDateTime().toString("dd/MM/yyyy HH:mm"))
-            };
-            if (ExportManager::exportPDF(file, alertsTable, "Raport Alerte Stoc", info))
-                QMessageBox::information(this, "Export reușit",
-                    "Raportul PDF a fost salvat cu succes:\n" + file);
-            else
-                QMessageBox::critical(this, "Eroare export",
-                    "Nu s-a putut genera fișierul PDF.");
-        }
-    });
 }
 
 void MainWindow::populateAlertsTable()
@@ -1171,8 +1127,9 @@ void MainWindow::applyProductsSearch()
     if (!searchBar || !productsTable) return;
     const QString text = searchBar->text().toLower();
     for (int row = 0; row < productsTable->rowCount(); ++row) {
-        QTableWidgetItem *item = productsTable->item(row, 1); // coloana Nume
-        bool match = text.isEmpty() || (item && item->text().toLower().contains(text));
+        QTableWidgetItem *item1 = productsTable->item(row, 1); // coloana Nume
+        QTableWidgetItem *item2 = productsTable->item(row, 0); // coloana ID
+        bool match = text.isEmpty() || (item1 && item1->text().toLower().contains(text)) || (item2 && item2->text().toLower().contains(text));
         productsTable->setRowHidden(row, !match);
     }
 }
