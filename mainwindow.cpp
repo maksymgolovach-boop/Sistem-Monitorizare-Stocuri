@@ -17,6 +17,7 @@
 #include "../NivelUI/transactiondialog.h"
 #include "../NivelUI/editproductdialog.h"
 #include "../NivelUI/productdetailsdialog.h"
+#include "../NivelUI/settingsdialog.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -133,14 +134,14 @@ void MainWindow::setupHeader()
 
     QSettings settings;
     QString depotName = settings.value("depot/name", "Depozit Central").toString();
-    QLabel *lblDepot = new QLabel(depotName);
-    lblDepot->setStyleSheet(
+    m_headerDepotLabel = new QLabel(depotName);
+    m_headerDepotLabel->setStyleSheet(
         "font-size: 12px; color: #6c757d; background: transparent;");
 
     lay->addWidget(lblLogo);
     lay->addWidget(lblTitle);
     lay->addWidget(sep);
-    lay->addWidget(lblDepot);
+    lay->addWidget(m_headerDepotLabel);
     lay->addStretch();
 
     // ── DREAPTA: Badge-uri status ─────────────────────────────────────────────
@@ -232,6 +233,51 @@ void MainWindow::updateHeaderBadges(const std::vector<Produs> &alerte)
     m_headerAlertBadge->setStyleSheet(alertStyle);
 }
 
+void MainWindow::openSettings()
+{
+    QSettings settings;
+
+    // Pregătim valorile curente pentru pre-popularea dialogului
+    SettingsData current;
+    current.numeDepozit    = settings.value("depot/name", "Depozit Central").toString();
+    current.caleDepozit    = m_storagedepozit.caleFisier();
+    current.caleTranzactii = m_storagetranzactii.caleFisier();
+
+    SettingsDialog dialog(current, this);
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+
+    const SettingsData sd = dialog.getSettings();
+
+    // ── 1. Salvăm în QSettings ────────────────────────────────────────────────
+    settings.setValue("depot/name",           sd.numeDepozit);
+    settings.setValue("stocaredepozit/cale",  sd.caleDepozit);
+    settings.setValue("stocaretranzactii/cale", sd.caleTranzactii);
+
+    // ── 2. Actualizăm eticheta din header live ────────────────────────────────
+    if (m_headerDepotLabel)
+        m_headerDepotLabel->setText(sd.numeDepozit);
+
+    // ── 3. Actualizăm căile în storage ───────────────────────────────────────
+    const bool depozitSchimbat    = (sd.caleDepozit    != current.caleDepozit);
+    const bool tranzactiiSchimbat = (sd.caleTranzactii != current.caleTranzactii);
+
+    m_storagedepozit.setCaleFisier(sd.caleDepozit);
+    m_storagetranzactii.setCaleFisier(sd.caleTranzactii);
+
+    // ── 4. Reîncărcăm datele dacă noul fișier există ──────────────────────────
+    //       Dacă fișierul nu există, datele din memorie rămân și vor fi salvate
+    //       la noua locație la operația următoare (add/edit/tranzacție).
+    if (depozitSchimbat && m_storagedepozit.exista())
+        depozit.incarcaDate();
+
+    if (tranzactiiSchimbat && m_storagetranzactii.exista())
+        istoric.incarcaDate();
+
+    if (depozitSchimbat || tranzactiiSchimbat)
+        UpdateUI();
+}
+
 void MainWindow::activateSidebarBtn(QPushButton *active)
 {
     const QList<QPushButton*> navBtns = {btnDashboard, btnProducts, btnAlerts, btnHistory};
@@ -298,7 +344,20 @@ void MainWindow::setupSidebar() {
 
     connect(btnSales, &QPushButton::clicked, this, &MainWindow::onBtnSalesClicked);
 
-    sideLayout->addStretch(); // Împinge totul în sus (Industry Standard)
+    sideLayout->addStretch();
+
+    // ── Setări — jos, separat de navigare ─────────────────────────────────────
+    QFrame *sepSettings = new QFrame();
+    sepSettings->setFrameShape(QFrame::HLine);
+    sepSettings->setStyleSheet("color: #dee2e6; margin: 0 10px;");
+    sideLayout->addWidget(sepSettings);
+
+    QPushButton *btnSettings = new QPushButton("⚙  Setări");
+    btnSettings->setObjectName("BtnSettings");
+    btnSettings->setCursor(Qt::PointingHandCursor);
+    sideLayout->addWidget(btnSettings);
+
+    connect(btnSettings, &QPushButton::clicked, this, &MainWindow::openSettings);
 
 }
 

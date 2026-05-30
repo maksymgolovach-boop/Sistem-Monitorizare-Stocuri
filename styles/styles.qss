@@ -45,6 +45,22 @@ QWidget {
     border-bottom: 1px solid #dee2e6;
 }
 
+/* ── Butonul Setări din sidebar (jos, neutru) ─────────────── */
+#BtnSettings {
+    border: none;
+    padding: 10px 15px;
+    text-align: left;
+    border-radius: 5px;
+    margin: 4px 10px;
+    color: #6c757d;
+    font-size: 12px;
+    background-color: transparent;
+}
+#BtnSettings:hover {
+    background-color: #f1f3f5;
+    color: #212529;
+}
+
 /* ── Status Bar (bara de jos) ─────────────────────────────── */
 QStatusBar {
     background-color: #2c3e50;

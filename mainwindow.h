@@ -70,6 +70,9 @@ private:
     void applyAlertsSearch();
 
     void updateHeaderBadges(const std::vector<Produs> &alerte); // sincronizează badge-urile din header
+
+    /** Deschide fereastra de setări și aplică modificările acceptate. */
+    void openSettings();
     void updateClock();          // actualizează ceasul din status bar
 
     /**
@@ -88,10 +91,11 @@ private:
     QWidget *header;
     QWidget *mainPanel;
 
-    // Header — badge-uri live
+    // Header — badge-uri live + label depot (actualizat din Settings)
     QLabel  *m_headerProduseBadge = nullptr;
     QLabel  *m_headerAlertBadge   = nullptr;
     QLabel  *m_headerTransBadge   = nullptr;
+    QLabel  *m_headerDepotLabel   = nullptr;
 
     // Status bar — ceas live
     QLabel  *m_statusClockLabel   = nullptr;

@@ -42,6 +42,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         NivelUI/transactiondialog.h NivelUI/transactiondialog.cpp
         NivelUI/editproductdialog.h NivelUI/editproductdialog.cpp
         NivelUI/productdetailsdialog.h NivelUI/productdetailsdialog.cpp
+        NivelUI/settingsdialog.h NivelUI/settingsdialog.cpp
         exportmanager.h exportmanager.cpp
 
     )
