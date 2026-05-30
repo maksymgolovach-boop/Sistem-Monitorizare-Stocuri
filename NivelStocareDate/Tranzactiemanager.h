@@ -73,13 +73,15 @@ public:
     // ── Operații pe istoric ───────────────────────────────────────────────────
 
     /**
-     * @brief Adaugă o tranzacție în memorie și persistă automat prin storage.
-     * @throws std::runtime_error dacă storage-ul raportează eroare de I/O.
+     * @brief Adaugă o tranzacție în memorie.
+     *
+     * Auto-save-ul a fost eliminat: apelantul este responsabil să cheme
+     * salveaza() explicit după ce toate modificările sunt gata, evitând
+     * astfel o scriere completă a fișierului după fiecare operație.
      */
     void adauga(const Tranzactie<T> &tranzactie)
     {
         m_istoric.push_back(tranzactie);
-        salveaza();
     }
 
     // ── Acces ─────────────────────────────────────────────────────────────────

@@ -167,11 +167,10 @@ int WarehouseManager::numarProduse() const
 
 double WarehouseManager::ValoareProduse() const
 {
-    int val=0;
-    for(const auto &[id, produs] : m_produse){
+    double val = 0.0;   // era int → trunchia zecimalele (ex: 5×2.99 = 14, nu 14.95)
+    for (const auto &[id, produs] : m_produse)
         val += produs.cantitate() * produs.pret();
-    }
-    return static_cast<double>(val);
+    return val;
 }
 
 bool WarehouseManager::esteGol() const

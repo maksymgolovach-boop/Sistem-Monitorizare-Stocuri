@@ -46,13 +46,13 @@ private:
     void setupStatusBar();
     void setupSidebar();
     void setupDashboardPage(QWidget *page);
-    void populateDashboard();
+    void populateDashboard(const std::vector<Produs> &alerte);
 
     void setupProductsPage(QWidget *page);
     void populateProductsTable();
 
     void setupAlertsPage(QWidget *page);
-    void populateAlertsTable();
+    void populateAlertsTable(const std::vector<Produs> &alerte);
 
     void setupHistoryPage(QWidget *page);
     void populateHistoryTable();
@@ -69,7 +69,7 @@ private:
     void applyProductsSearch();
     void applyAlertsSearch();
 
-    void updateHeaderBadges();   // sincronizează badge-urile din header cu datele live
+    void updateHeaderBadges(const std::vector<Produs> &alerte); // sincronizează badge-urile din header
     void updateClock();          // actualizează ceasul din status bar
 
     /**

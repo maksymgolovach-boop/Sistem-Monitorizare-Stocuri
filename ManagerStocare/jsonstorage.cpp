@@ -149,23 +149,14 @@ void JsonStorage::salveazaTranzactii(const std::vector<TranzactieProdus> &tranza
     verificaCale();
     asiguraDirector();
 
-    // Citim documentul existent ca să nu pierdem produsele
-    QJsonObject radacina;
-    if (exista()) {
-        QFile fisierCitire(m_caleFisier);
-        if (fisierCitire.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            QJsonParseError err;
-            const QJsonDocument doc = QJsonDocument::fromJson(fisierCitire.readAll(), &err);
-            if (err.error == QJsonParseError::NoError && doc.isObject())
-                radacina = doc.object();
-            fisierCitire.close();
-        }
-    }
-
+    // Produsele și tranzacțiile sunt stocate în fișiere SEPARATE
+    // (m_storagedepozit ≠ m_storagetranzactii), deci nu există nimic de preservat —
+    // citirea prealabilă era complet inutilă și dubla costul fiecărei salvări.
     QJsonArray array;
     for (const TranzactieProdus &t : tranzactii)
         array.append(t.toJson());
 
+    QJsonObject radacina;
     radacina[KEY_TRANZACTII] = array;
 
     QSaveFile fisier(m_caleFisier);

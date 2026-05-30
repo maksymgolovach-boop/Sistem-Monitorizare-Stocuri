@@ -109,7 +109,7 @@ void MainWindow::setupLayout() {
 
     // Status bar + valori inițiale
     setupStatusBar();
-    updateHeaderBadges();
+    updateHeaderBadges(depozit.produseSubPrag());
 }
 
 void MainWindow::setupHeader()
@@ -199,13 +199,13 @@ void MainWindow::updateClock()
         QDateTime::currentDateTime().toString("  📅  dd/MM/yyyy    🕒  HH:mm  "));
 }
 
-void MainWindow::updateHeaderBadges()
+void MainWindow::updateHeaderBadges(const std::vector<Produs> &alerte)
 {
     if (!m_headerProduseBadge || !m_headerAlertBadge || !m_headerTransBadge)
         return;
 
     const int nrProduse = depozit.numarProduse();
-    const int nrAlerte  = static_cast<int>(depozit.produseSubPrag().size());
+    const int nrAlerte  = static_cast<int>(alerte.size()); // primit din UpdateUI, fără recalcul
     const int nrTranz   = istoric.numar();
 
     m_headerProduseBadge->setText(
@@ -356,7 +356,7 @@ void MainWindow::setupDashboardPage(QWidget *page){
     layout->addWidget(dashboardTable);
 
     // Populăm imediat cu datele existente
-    populateDashboard();
+    populateDashboard(depozit.produseSubPrag());
 
     // Double-click → detalii produs (ID stocat în Qt::UserRole pe col 0)
     connect(dashboardTable, &QTableWidget::cellDoubleClicked,
@@ -385,7 +385,7 @@ QWidget* MainWindow::createStatCard(QString title, QString value, QString object
     return card;
 }
 
-void MainWindow::populateDashboard()
+void MainWindow::populateDashboard(const std::vector<Produs> &alerte)
 {
     if (!dashboardAlertValue || !dashboardTransValue || !dashboardTable)
         return;
@@ -394,7 +394,7 @@ void MainWindow::populateDashboard()
     dashboardTransValue->setText(QString::number(istoric.numar()));
 
     // ── 2. Card "Sub Prag Alertă" — valoare + culoare roșu/verde ─────────────
-    const int nrAlerte = static_cast<int>(depozit.produseSubPrag().size());
+    const int nrAlerte = static_cast<int>(alerte.size()); // primit din UpdateUI, fără recalcul
     dashboardAlertValue->setText(QString::number(nrAlerte));
     if (nrAlerte > 0)
         dashboardAlertValue->setStyleSheet("color: #dc3545; font-weight: bold;");  // roșu
@@ -745,7 +745,7 @@ void MainWindow::setupAlertsPage(QWidget *page) {
     alertsTable->setFrameShape(QFrame::NoFrame);
 
     mainLayout->addWidget(alertsTable);
-    populateAlertsTable();
+    populateAlertsTable(depozit.produseSubPrag());
 
     // Double-click → detalii produs (col 0 = ID)
     connect(alertsTable, &QTableWidget::cellDoubleClicked,
@@ -767,15 +767,15 @@ void MainWindow::setupAlertsPage(QWidget *page) {
             SortAlerte::Raport
         };
         m_sortAlerte = mapare[index];
-        populateAlertsTable();
+        populateAlertsTable(depozit.produseSubPrag());
     });
 
 }
 
-void MainWindow::populateAlertsTable()
+void MainWindow::populateAlertsTable(const std::vector<Produs> &alerte)
 {
-    // ── 1. Luăm produsele sub prag ────────────────────────────────────────────
-    std::vector<Produs> listaAlerte = depozit.produseSubPrag();
+    // ── 1. Copiem lista primită (sortarea de mai jos modifică ordinea) ─────────
+    std::vector<Produs> listaAlerte = alerte;
 
     // ── 2. Sortăm conform opțiunii curente ───────────────────────────────────
     switch (m_sortAlerte) {
@@ -1102,10 +1102,11 @@ void MainWindow::onBtnSalesClicked()
         );
     // m_id și m_timestamp sunt generate automat în constructorul Tranzactie
 
-    istoric.adauga(tranzactie);   // adaugă în memorie + salvează automat prin storage
+    istoric.adauga(tranzactie);   // adaugă în memorie (fără auto-save)
 
-    // 7. Salvăm și stocul actualizat
+    // 7. Salvăm explicit atât stocul cât și istoricul
     depozit.salveazaDate();
+    istoric.salveaza();
 
     // 8. Reîmprospătăm UI-ul
     UpdateUI();
@@ -1115,11 +1116,14 @@ void MainWindow::onBtnSalesClicked()
 }
 
 void MainWindow::UpdateUI(){
-    populateDashboard();
+    // produseSubPrag() iterează toată map-a — o singură dată per ciclu de refresh
+    const std::vector<Produs> alerte = depozit.produseSubPrag();
+
+    populateDashboard(alerte);
     populateProductsTable();
-    populateAlertsTable();
+    populateAlertsTable(alerte);
     populateHistoryTable();
-    updateHeaderBadges();
+    updateHeaderBadges(alerte);
 }
 
 void MainWindow::applyProductsSearch()
