@@ -9,6 +9,7 @@
 #include <QStackedWidget>
 #include <QLineEdit>
 #include <QTableWidget>
+#include <QLabel>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -36,6 +37,7 @@ private:
     void setupLayout(); // Metoda unde construim structura
     void setupSidebar();
     void setupDashboardPage(QWidget *page);
+    void populateDashboard();
 
     void setupProductsPage(QWidget *page);
     void populateProductsTable();
@@ -70,6 +72,11 @@ private:
     QPushButton *btnAddProduct;
     QPushButton *btnDeleteProduct;
     QTableWidget *productsTable;
+
+    // Elemente UI pentru Dashboard
+    QLabel       *dashboardAlertValue  = nullptr;  // valoarea din cardul "Sub Prag Alertă"
+    QLabel       *dashboardTransValue  = nullptr;  // valoarea din cardul "Tranzacții"
+    QTableWidget *dashboardTable       = nullptr;  // tabelul de produse din dashboard
 
     // Elemente UI pentru pagina de Alerte
     QLineEdit *searchAlertsBar;

@@ -8,6 +8,7 @@
 #include <QTableWidget>
 #include <QHeaderView>
 #include <QMessageBox>
+#include <algorithm>
 #include "../NivelUI/addproductdialog.h"
 #include "../NivelUI/transactiondialog.h"
 #include "../NivelUI/editproductdialog.h"
@@ -153,35 +154,39 @@ void MainWindow::setupDashboardPage(QWidget *page){
     cardsLayout->setSpacing(15);
 
     QString produseTotalelbl = QString::number(depozit.numarProduse());
-    QString valoareDepozit = QString::number(depozit.ValoareProduse());
-    QString produsesubAlertalbl = "--";
-    if(depozit.existaAlerte())
-        produsesubAlertalbl = QString::number(depozit.produseSubPrag().size());
+    QString valoareDepozit   = QString::number(depozit.ValoareProduse(), 'f', 2);
 
-    // Creăm cardurile folosind ID-urile din QSS-ul tău
     cardsLayout->addWidget(createStatCard("Produse Totale", produseTotalelbl, "CardTotal"));
-    cardsLayout->addWidget(createStatCard("Valoare Stoc", valoareDepozit, "CardValue"));
-    cardsLayout->addWidget(createStatCard("Sub Prag Alertă", produsesubAlertalbl, "CardAlert"));
-    cardsLayout->addWidget(createStatCard("Tranzacții", "--", "CardTrans"));
+    cardsLayout->addWidget(createStatCard("Valoare Stoc",   valoareDepozit,   "CardValue"));
+
+    // Capturăm labelul de valoare din cardul "Sub Prag Alertă" pentru a-i schimba culoarea
+    QWidget *alertCard = createStatCard("Sub Prag Alertă", "0", "CardAlert");
+    dashboardAlertValue = alertCard->findChild<QLabel*>("StatValue");
+    cardsLayout->addWidget(alertCard);
+
+    // Capturăm labelul de valoare din cardul "Tranzacții" pentru actualizare live
+    QWidget *transCard = createStatCard("Tranzacții", "0", "CardTrans");
+    dashboardTransValue = transCard->findChild<QLabel*>("StatValue");
+    cardsLayout->addWidget(transCard);
 
     layout->addLayout(cardsLayout);
-    QString textAlerta = QString("Atenție: %1 produse necesită reaprovizionare imediată!").arg(produsesubAlertalbl);
-    QLabel *lblAlertBanner = new QLabel(textAlerta);
-    lblAlertBanner->setObjectName("AlertBanner"); // Folosește ID-ul din styles.qss
+
+    // --- 2. BANNER ALERTA ---
+    QLabel *lblAlertBanner = new QLabel();
+    lblAlertBanner->setObjectName("AlertBanner");
     lblAlertBanner->setFixedHeight(40);
     lblAlertBanner->setAlignment(Qt::AlignCenter);
-    if(!depozit.existaAlerte())
-        lblAlertBanner->setVisible(false);
-
+    lblAlertBanner->setVisible(false);   // populateDashboard() decide vizibilitatea
     layout->addWidget(lblAlertBanner);
 
-    // --- 3. LISTA PRODUSE (Tabel) ---
-    QLabel *lblTableTitle = new QLabel("Produse recente");
+    // --- 3. LISTA PRODUSE (Tabel) — top 15 după cantitate ---
+    QLabel *lblTableTitle = new QLabel("Top 15 produse după stoc");
     lblTableTitle->setObjectName("TableLabel");
     layout->addWidget(lblTableTitle);
 
-    QTableWidget *dashboardTable = new QTableWidget(10, 4); // 10 rânduri dummy
-    dashboardTable->setHorizontalHeaderLabels({"Produs", "Pret", "Stoc", "Status"});
+    dashboardTable = new QTableWidget();
+    dashboardTable->setColumnCount(4);
+    dashboardTable->setHorizontalHeaderLabels({"Produs", "Preț (RON)", "Stoc", "Status"});
     dashboardTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     dashboardTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     dashboardTable->setFrameShape(QFrame::NoFrame);
@@ -189,9 +194,10 @@ void MainWindow::setupDashboardPage(QWidget *page){
     dashboardTable->verticalHeader()->setVisible(false);
     dashboardTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     dashboardTable->setObjectName("DashboardTable");
-
     layout->addWidget(dashboardTable);
 
+    // Populăm imediat cu datele existente
+    populateDashboard();
 }
 
 QWidget* MainWindow::createStatCard(QString title, QString value, QString objectName) {
@@ -211,6 +217,63 @@ QWidget* MainWindow::createStatCard(QString title, QString value, QString object
     layout->addWidget(lblValue);
 
     return card;
+}
+
+void MainWindow::populateDashboard()
+{
+    if (!dashboardAlertValue || !dashboardTransValue || !dashboardTable)
+        return;
+
+    // ── 1. Card "Tranzacții" ──────────────────────────────────────────────────
+    dashboardTransValue->setText(QString::number(istoric.numar()));
+
+    // ── 2. Card "Sub Prag Alertă" — valoare + culoare roșu/verde ─────────────
+    const int nrAlerte = static_cast<int>(depozit.produseSubPrag().size());
+    dashboardAlertValue->setText(QString::number(nrAlerte));
+    if (nrAlerte > 0)
+        dashboardAlertValue->setStyleSheet("color: #dc3545; font-weight: bold;");  // roșu
+    else
+        dashboardAlertValue->setStyleSheet("color: #198754; font-weight: bold;");  // verde
+
+    // ── 3. Tabel — top 15 produse după cantitate descrescătoare ──────────────
+    const auto &harta = depozit.produse();
+
+    // Colectăm pointeri, sortăm, tăiem la 15
+    std::vector<const Produs*> lista;
+    lista.reserve(harta.size());
+    for (const auto &pereche : harta)
+        lista.push_back(&pereche.second);
+
+    std::sort(lista.begin(), lista.end(), [](const Produs *a, const Produs *b) {
+        return a->cantitate() > b->cantitate();
+    });
+    if (lista.size() > 15)
+        lista.resize(15);
+
+    dashboardTable->setRowCount(0);
+    for (const Produs *p : lista) {
+        int row = dashboardTable->rowCount();
+        dashboardTable->insertRow(row);
+
+        dashboardTable->setItem(row, 0, new QTableWidgetItem(p->nume()));
+        dashboardTable->setItem(row, 1, new QTableWidgetItem(
+            QString::number(p->pret(), 'f', 2)));
+        dashboardTable->setItem(row, 2, new QTableWidgetItem(
+            QString::number(p->cantitate())));
+
+        // Status cu culoare
+        QTableWidgetItem *statusItem;
+        if (p->esteSubPrag()) {
+            statusItem = new QTableWidgetItem("⚠ Sub Prag");
+            statusItem->setForeground(QBrush(QColor("#dc3545")));
+        } else {
+            statusItem = new QTableWidgetItem("✓ OK");
+            statusItem->setForeground(QBrush(QColor("#198754")));
+        }
+        statusItem->setFont(QFont("Arial", 9, QFont::Bold));
+        statusItem->setTextAlignment(Qt::AlignCenter);
+        dashboardTable->setItem(row, 3, statusItem);
+    }
 }
 
 void MainWindow::setupProductsPage(QWidget* page){
@@ -652,6 +715,7 @@ void MainWindow::onBtnSalesClicked()
 }
 
 void MainWindow::UpdateUI(){
+    populateDashboard();
     populateProductsTable();
     populateAlertsTable();
     populateHistoryTable();
