@@ -111,7 +111,7 @@ void SettingsDialog::setupUI(const SettingsData &current)
     m_editNume = new QLineEdit(current.numeDepozit);
     m_editNume->setPlaceholderText("Ex: Depozit Central");
     m_editNume->setObjectName("ModernInput");
-    m_editNume->setMinimumHeight(34);
+    m_editNume->setMinimumHeight(40);
     root->addWidget(lblNume);
     root->addWidget(m_editNume);
 
