@@ -56,9 +56,9 @@ void MainWindow::setupLayout() {
 
     // --- ZONA 1: HEADER (Sus, pe toată lățimea) ---
     header = new QWidget();
-    header->setFixedHeight(50);
+    header->setFixedHeight(56);
     header->setObjectName("Header");
-
+    setupHeader();
     mainLayout->addWidget(header);
 
     // --- ZONA 2: Zona de conținut de sub Header (Orizontală) ---
@@ -106,6 +106,130 @@ void MainWindow::setupLayout() {
     stackedWidget->addWidget(productsPage);         // Index 1
     stackedWidget->addWidget(alertsPage);           // Index 2
     stackedWidget->addWidget(transactionsPage);     // Index 3
+
+    // Status bar + valori inițiale
+    setupStatusBar();
+    updateHeaderBadges();
+}
+
+void MainWindow::setupHeader()
+{
+    QHBoxLayout *lay = new QHBoxLayout(header);
+    lay->setContentsMargins(16, 0, 16, 0);
+    lay->setSpacing(0);
+
+    // ── STÂNGA: Logo + titlu + separator + nume depozit ───────────────────────
+    QLabel *lblLogo = new QLabel("📦");
+    lblLogo->setStyleSheet("font-size: 22px; background: transparent;");
+
+    QLabel *lblTitle = new QLabel("StocManager");
+    lblTitle->setStyleSheet(
+        "font-size: 15px; font-weight: bold; color: #212529;"
+        "background: transparent; margin-left: 8px;");
+
+    QFrame *sep = new QFrame();
+    sep->setFrameShape(QFrame::VLine);
+    sep->setStyleSheet("color: #dee2e6; margin: 12px 14px;");
+
+    QSettings settings;
+    QString depotName = settings.value("depot/name", "Depozit Central").toString();
+    QLabel *lblDepot = new QLabel(depotName);
+    lblDepot->setStyleSheet(
+        "font-size: 12px; color: #6c757d; background: transparent;");
+
+    lay->addWidget(lblLogo);
+    lay->addWidget(lblTitle);
+    lay->addWidget(sep);
+    lay->addWidget(lblDepot);
+    lay->addStretch();
+
+    // ── DREAPTA: Badge-uri status ─────────────────────────────────────────────
+    auto makeBadge = [](const QString &text,
+                        const QString &bg, const QString &fg,
+                        const QString &border) -> QLabel * {
+        QLabel *b = new QLabel(text);
+        b->setStyleSheet(
+            QString("background:%1; color:%2; border:1px solid %3;"
+                    "border-radius:10px; padding:2px 10px;"
+                    "font-size:11px; font-weight:bold;")
+                .arg(bg, fg, border));
+        b->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+        return b;
+    };
+
+    m_headerProduseBadge = makeBadge("📦  0 produse",
+                                     "#e7f1ff", "#0d6efd", "#b6d4fe");
+    m_headerAlertBadge   = makeBadge("✓  0 alerte",
+                                     "#e6f4ea", "#198754", "#b7e4c7");
+    m_headerTransBadge   = makeBadge("🔄  0 tranzacții",
+                                     "#f3e8ff", "#6f42c1", "#d8b4fe");
+
+    lay->addWidget(m_headerProduseBadge);
+    lay->addSpacing(8);
+    lay->addWidget(m_headerAlertBadge);
+    lay->addSpacing(8);
+    lay->addWidget(m_headerTransBadge);
+}
+
+void MainWindow::setupStatusBar()
+{
+    // Stânga: informație aplicație
+    QLabel *lblInfo = new QLabel("  Sistem Monitorizare Stocuri  v0.1");
+    lblInfo->setObjectName("StatusBarLabel");
+    statusBar()->addWidget(lblInfo);
+
+    // Dreapta: dată + ceas live (actualizat la fiecare minut)
+    m_statusClockLabel = new QLabel();
+    m_statusClockLabel->setObjectName("StatusBarLabel");
+    m_statusClockLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    statusBar()->addPermanentWidget(m_statusClockLabel);
+
+    // Afișare imediată + timer la 60 secunde
+    updateClock();
+    m_clockTimer = new QTimer(this);
+    m_clockTimer->setInterval(60000);
+    connect(m_clockTimer, &QTimer::timeout, this, &MainWindow::updateClock);
+    m_clockTimer->start();
+}
+
+void MainWindow::updateClock()
+{
+    if (!m_statusClockLabel) return;
+    m_statusClockLabel->setText(
+        QDateTime::currentDateTime().toString("  📅  dd/MM/yyyy    🕒  HH:mm  "));
+}
+
+void MainWindow::updateHeaderBadges()
+{
+    if (!m_headerProduseBadge || !m_headerAlertBadge || !m_headerTransBadge)
+        return;
+
+    const int nrProduse = depozit.numarProduse();
+    const int nrAlerte  = static_cast<int>(depozit.produseSubPrag().size());
+    const int nrTranz   = istoric.numar();
+
+    m_headerProduseBadge->setText(
+        QString("📦  %1 produs%2")
+            .arg(nrProduse)
+            .arg(nrProduse == 1 ? "" : "e"));
+
+    m_headerTransBadge->setText(
+        QString("🔄  %1 tranzacți%2")
+            .arg(nrTranz)
+            .arg(nrTranz == 1 ? "e" : "i"));
+
+    // Alert badge: verde dacă totul OK, roșu dacă există alerte
+    m_headerAlertBadge->setText(
+        nrAlerte > 0
+            ? QString("⚠  %1 alertă%2").arg(nrAlerte).arg(nrAlerte == 1 ? "" : "e")
+            : QString("✓  Stoc OK"));
+
+    const QString alertStyle = nrAlerte > 0
+        ? "background:#fff5f5; color:#dc3545; border:1px solid #ffc9c9;"
+          "border-radius:10px; padding:2px 10px; font-size:11px; font-weight:bold;"
+        : "background:#e6f4ea; color:#198754; border:1px solid #b7e4c7;"
+          "border-radius:10px; padding:2px 10px; font-size:11px; font-weight:bold;";
+    m_headerAlertBadge->setStyleSheet(alertStyle);
 }
 
 void MainWindow::setupSidebar() {
@@ -1009,6 +1133,7 @@ void MainWindow::UpdateUI(){
     populateProductsTable();
     populateAlertsTable();
     populateHistoryTable();
+    updateHeaderBadges();
 }
 
 void MainWindow::applyProductsSearch()

@@ -12,6 +12,7 @@
 #include <QLabel>
 #include <QComboBox>
 #include <QDateEdit>
+#include <QTimer>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -40,7 +41,9 @@ private:
     enum class SortProduse { Default, PretAsc, PretDesc, CantiCresc, CantiDesc, NrTranzactii };
     enum class SortAlerte  { Default, PragDesc, PragCresc, CantiCresc, CantiDesc, Raport };
 
-    void setupLayout(); // Metoda unde construim structura
+    void setupLayout();
+    void setupHeader();
+    void setupStatusBar();
     void setupSidebar();
     void setupDashboardPage(QWidget *page);
     void populateDashboard();
@@ -66,6 +69,9 @@ private:
     void applyProductsSearch();
     void applyAlertsSearch();
 
+    void updateHeaderBadges();   // sincronizează badge-urile din header cu datele live
+    void updateClock();          // actualizează ceasul din status bar
+
     /** Deschide ProductDetailsDialog pentru produsul cu ID-ul dat. */
     void showProductDetails(const QString &produsId);
 
@@ -73,6 +79,15 @@ private:
     QWidget *sidebar;
     QWidget *header;
     QWidget *mainPanel;
+
+    // Header — badge-uri live
+    QLabel  *m_headerProduseBadge = nullptr;
+    QLabel  *m_headerAlertBadge   = nullptr;
+    QLabel  *m_headerTransBadge   = nullptr;
+
+    // Status bar — ceas live
+    QLabel  *m_statusClockLabel   = nullptr;
+    QTimer  *m_clockTimer         = nullptr;
 
     QWidget* createStatCard(QString title, QString value, QString objectName);
 
