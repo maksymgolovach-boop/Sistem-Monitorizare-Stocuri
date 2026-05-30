@@ -61,7 +61,7 @@ Produs EditProductDialog::getProdusCuModificari() const
 void EditProductDialog::setupUI()
 {
     this->setWindowTitle("Modifică produs");
-    this->setFixedSize(500, 650);
+    this->setFixedSize(500, 700);
     this->setStyleSheet("QDialog { background-color: white; }");
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);

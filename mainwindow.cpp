@@ -766,6 +766,7 @@ void MainWindow::setupHistoryPage(QWidget *page) {
     dateFilterFrom->setCalendarPopup(true);
     dateFilterFrom->setDisplayFormat("dd/MM/yyyy");
     dateFilterFrom->setMinimumHeight(32);
+    dateFilterFrom->setMinimumWidth(128);
     dateFilterFrom->setObjectName("ModernInput");
 
     QLabel *lblArrow = new QLabel("→");
@@ -775,6 +776,7 @@ void MainWindow::setupHistoryPage(QWidget *page) {
     dateFilterTo->setCalendarPopup(true);
     dateFilterTo->setDisplayFormat("dd/MM/yyyy");
     dateFilterTo->setMinimumHeight(32);
+    dateFilterTo->setMinimumWidth(128);
     dateFilterTo->setObjectName("ModernInput");
 
     btnResetDate = new QPushButton("✕ Resetează");

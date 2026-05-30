@@ -30,7 +30,7 @@ AddProductDialog::AddProductDialog(QWidget *parent) : QDialog(parent) {
 
 void AddProductDialog::setupUI() {
     this->setWindowTitle("Adaugă produs nou");
-    this->setFixedSize(500, 650);
+    this->setFixedSize(500, 700);
     this->setStyleSheet("QDialog { background-color: white; }");
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);

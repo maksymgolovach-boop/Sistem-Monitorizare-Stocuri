@@ -27,7 +27,6 @@ class AddProductDialog : public QDialog {
 public:
     explicit AddProductDialog(QWidget *parent = nullptr);
 
-    // Funcție prin care MainWindow va „extrage” datele după ce userul apasă Salvează
     ProductData getProductData() const;
 
 private:

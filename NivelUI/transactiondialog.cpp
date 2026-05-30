@@ -39,6 +39,21 @@ TransactionDialog::TransactionDialog(const WarehouseManager& depozit, QWidget *p
     connect(comboProduse->lineEdit(), &QLineEdit::textEdited, this, [this]() {
         m_produsSelectat = false;
     });
+    connect(comboProduse, &QComboBox::currentIndexChanged, this, [this]{
+        int index = comboProduse->currentIndex();
+        if (index <= 0) {
+            spinPret->setValue(0.0);
+            return;
+        }
+
+        QString idSelectat = comboProduse->currentData().toString();
+
+        const Produs* p = m_depozit.gasesteProdusDupaId(idSelectat);
+
+        if(p!=nullptr)
+            spinPret->setValue(p->pret());
+
+    });
 
     connect(btnConfirm, &QPushButton::clicked, this, [this]() {
         if (valideazaDatele())
