@@ -1,0 +1,289 @@
+QWidget {
+    background-color: #f8f9fa;
+    font-family: "Segoe UI", sans-serif;
+    color: #333;
+}
+
+/* Sidebar */
+#Sidebar {
+    background-color: #ffffff;
+    border-right: 1px solid #dee2e6;
+    min-width: 240px;
+}
+
+#Sidebar QLabel {
+    color: #6c757d;
+    font-weight: bold;
+    font-size: 12px;
+    padding-left: 10px;
+    margin-top: 15px;
+    background-color: #ffffff;
+}
+
+#Sidebar QPushButton {
+    border: none;
+    padding: 10px 15px;
+    text-align: left;
+    border-radius: 5px;
+    margin: 2px 10px;
+    color: #495057;
+    font-size: 10px;
+}
+
+#Sidebar QPushButton:hover {
+    background-color: #dbdbdb;
+}
+
+#Sidebar QPushButton[active="true"] {
+    background-color: #e7f1ff;
+    color: #4a93ff;
+    font-weight: bold;
+}
+
+#Header {
+    background-color: #ffffff;
+    border-bottom: 1px solid #ddd;
+
+}
+
+#MainPanel {
+    background-color: #fcfaf5;
+
+}
+
+#PageContent {
+    background-color: #fcfaf5;
+}
+
+/* Carduri Statice */
+#StatCard {
+    background-color: white;
+    border-radius: 10px;
+    border: 1px solid #dee2e6;
+    padding: 15px;
+}
+
+#StatTitle {
+    color: #6c757d;
+    font-size: 12px;
+    background-color: Transparent;
+}
+#StatValue {
+    color: #212529;
+    font-size: 20px;
+    font-weight: bold;
+    background-color: Transparent;
+
+}
+
+
+/* Banner Alerta */
+#AlertBanner {
+    background-color: #fff5f5;
+    border: 1px solid #ffc9c9;
+    border-radius: 8px;
+    color: #fa5252;
+    padding: 10px;
+    font-weight: bold;
+}
+
+#TableLabel {
+    font-size: 18px;
+    font-weight: bold;
+    color: #2c3e50;
+    background-color:Transparent;
+}
+
+#DashboardTable {
+    background-color: white;
+    alternate-background-color: #f8f9fa;
+    selection-background-color: #e7f1ff;
+    selection-color: #0d6efd;
+}
+
+#MainProductsTable {
+    background-color: white;
+    alternate-background-color: #f8f9fa;
+    selection-background-color: #e7f1ff;
+    selection-color: #0d6efd;
+}
+
+/* 2. Capul de tabel (Titlurile coloanelor) */
+QHeaderView::section {
+    background-color: white;
+    color: #6c757d;
+    font-weight: bold;
+    font-size: 12px;
+    padding: 10px;
+    border: none;
+    border-bottom: 2px solid #dee2e6;
+    text-transform: uppercase;
+}
+
+/* 3. Celulele individuale (Itemii) */
+QTableWidget::item {
+    padding: 5px 10px;
+    border-bottom: 1px solid #f0f0f0;
+    /* border-right: 1px solid #f0f0f0; */
+    color: #333;
+}
+
+/* 4. Opțional: Fără focus ring (linia punctată urâtă care apare când dai click) */
+QTableWidget::item:focus {
+    outline: none;
+}
+
+/* Detalii Produs (Panou Dreapta) */
+#DetailsPanel {
+    background-color: white;
+    border-left: 1px solid #dee2e6;
+    min-width: 300px;
+    padding: 20px;
+}
+
+
+#SearchBar {
+    background-color: white;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    padding-left: 10px;
+    font-size: 14px;
+    color: #495057;
+}
+#SearchBar:focus {
+    border: 1px solid #86b7fe; /* Schimbă marginea în albastru la click */
+}
+
+/* Stil comun pentru butoanele din bara de sus */
+#BtnFilter {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0 15px;
+    font-weight: bold;
+}
+#BtnFilter:hover { background-color: #5a6268; }
+
+#BtnAdd {
+    background-color: #23139c; /* Albastru primar */
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0 15px;
+    font-weight: bold;
+}
+#BtnAdd:hover { background-color: #0b5ed7; }
+
+#BtnDelete {
+    background-color: #dc3545; /* Roșu de ștergere/pericol */
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0 15px;
+    font-weight: bold;
+}
+#BtnDelete:hover { background-color: #bb2d3b; }
+
+#BtnDelete:disabled {
+    background-color: #f8d7da; /* Roșu spălăcit */
+    color: #b02a37; /* Text mai șters */
+}
+
+#BtnCloseTop {
+    background-color: transparent;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    color: #495057;
+    font-weight: bold;
+}
+#BtnCloseTop:hover {
+    background-color: #f8f9fa;
+}
+
+/* Caseta gri de ID (Read Only) */
+#IdFrame {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+}
+
+/* Badge-ul verde "auto" */
+#AutoBadge {
+    background-color: #e6f4ea;
+    color: #1e8e3e;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+/* Câmpurile normale de introducere text și numere */
+#ModernInput {
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 14px;
+    color: #212529;
+    background-color: white;
+}
+#ModernInput:focus {
+    border: 1px solid #86b7fe;
+    outline: none;
+}
+
+/* Butonul de Anulare */
+#BtnDialogCancel {
+    background-color: white;
+    border: 1px solid #ffa1a1;
+    color: #495057;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: bold;
+}
+#BtnDialogCancel:hover {
+    background-color: #ff6161;
+    color: white;
+}
+
+/* Butonul de Salvare */
+#BtnDialogSave {
+    background-color: white;
+    border: 1px solid #34b82a;
+    color: #212529;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: bold;
+}
+#BtnDialogSave:hover {
+    background-color: #5ad651;
+    color: white;
+}
+
+/* Eliminăm butoanele mici (săgețile) din QSpinBox pentru a arăta ca un input curat */
+
+QSpinBox::up-button, QDoubleSpinBox::up-button,
+QSpinBox::down-button, QDoubleSpinBox::down-button {
+    width: 0px;
+    border: none;
+}
+
+/* FEREASTRA DE EDITARE */
+QPushButton#BtnEdit {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffc107;
+    border-radius: 6px;
+    padding: 0 12px;
+    font-weight: bold;
+}
+QPushButton#BtnEdit:hover {
+    background-color: #ffc107;
+    color: #212529;
+}
+QPushButton#BtnEdit:disabled {
+    background-color: #f8f9fa;
+    color: #adb5bd;
+    border-color: #dee2e6;
+}
+

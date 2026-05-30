@@ -1,0 +1,84 @@
+#ifndef MAINWINDOW_H
+#define MAINWINDOW_H
+
+#include <QMainWindow>
+#include "../ManagerStocare/jsonstorage.h"
+#include "../NivelStocareDate/Tranzactiemanager.h"
+#include "../NivelStocareDate/warehousemanager.h"
+#include <QPushButton>
+#include <QStackedWidget>
+#include <QLineEdit>
+#include <QTableWidget>
+
+QT_BEGIN_NAMESPACE
+namespace Ui {
+class MainWindow;
+}
+QT_END_NAMESPACE
+
+class MainWindow : public QMainWindow
+{
+    Q_OBJECT
+
+public:
+    MainWindow(QWidget *parent = nullptr);
+    ~MainWindow();
+    QPushButton* createMenuBtn(QString text, bool active);
+
+private:
+    Ui::MainWindow *ui;
+    JsonStorage m_storagedepozit;
+    JsonStorage m_storagetranzactii;
+
+    WarehouseManager depozit;
+    IstoricTranzactii istoric;
+
+    void setupLayout(); // Metoda unde construim structura
+    void setupSidebar();
+    void setupDashboardPage(QWidget *page);
+
+    void setupProductsPage(QWidget *page);
+    void populateProductsTable();
+
+    void setupAlertsPage(QWidget *page);
+    void populateAlertsTable();
+
+    void setupHistoryPage(QWidget *page);
+    void populateHistoryTable();
+
+    void onBtnSalesClicked();
+    void UpdateUI();
+
+    // Zonele principale
+    QWidget *sidebar;
+    QWidget *header;
+    QWidget *mainPanel;
+
+    QWidget* createStatCard(QString title, QString value, QString objectName);
+
+    // Butoanele din Sidebar
+    QPushButton *btnDashboard, *btnProducts, *btnAlerts;
+    QPushButton *btnSales, *btnPurchases, *btnHistory;
+
+    // "Inima" panoului principal
+    QStackedWidget *stackedWidget;
+
+    // Widget-uri pentru pagina de Produse
+    QLineEdit *searchBar;
+    QPushButton *btnFilter;
+    QPushButton *btnEdit;
+    QPushButton *btnAddProduct;
+    QPushButton *btnDeleteProduct;
+    QTableWidget *productsTable;
+
+    // Elemente UI pentru pagina de Alerte
+    QLineEdit *searchAlertsBar;
+    QPushButton *btnExportReport;
+    QTableWidget *alertsTable;
+
+    // Elemente UI pentru pagina de istoric tranzactii
+    QTableWidget *historyTable;
+    QLineEdit *searchHistoryBar;
+    QPushButton *btnExportHistory;
+};
+#endif // MAINWINDOW_H

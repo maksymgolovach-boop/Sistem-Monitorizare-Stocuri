@@ -1,0 +1,663 @@
+#include "mainwindow.h"
+#include "./ui_mainwindow.h"
+#include <QStandardPaths>
+#include <QSettings>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QPushButton>
+#include <QTableWidget>
+#include <QHeaderView>
+#include <QMessageBox>
+#include "../NivelUI/addproductdialog.h"
+#include "../NivelUI/transactiondialog.h"
+#include "../NivelUI/editproductdialog.h"
+
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+    , ui(new Ui::MainWindow)
+    , m_storagedepozit()
+    , m_storagetranzactii()
+    , depozit(&m_storagedepozit)
+    , istoric(&m_storagetranzactii)
+{
+    ui->setupUi(this);
+    QSettings settings;
+    m_storagedepozit.setCaleFisier(
+        settings.value("stocaredepozit/cale",
+                       QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
+                           + "/SistemMonitorizareStocuri/depozit.json").toString());
+
+    m_storagetranzactii.setCaleFisier(
+        settings.value("stocaretranzactii/cale",
+                       QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
+                           + "/SistemMonitorizareStocuri/tranzactii.json").toString());
+
+    if(m_storagedepozit.exista())
+        depozit.incarcaDate();
+    if(m_storagetranzactii.exista())
+        istoric.incarcaDate();
+    setupLayout();
+}
+
+void MainWindow::setupLayout() {
+    // 1. Widget-ul central și Layout-ul Principal (Vertical)
+    QWidget *centralWidget = new QWidget(this);
+    setCentralWidget(centralWidget);
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->setSpacing(0);
+
+    // --- ZONA 1: HEADER (Sus, pe toată lățimea) ---
+    header = new QWidget();
+    header->setFixedHeight(50);
+    header->setObjectName("Header");
+
+    mainLayout->addWidget(header);
+
+    // --- ZONA 2: Zona de conținut de sub Header (Orizontală) ---
+    QWidget *contentArea = new QWidget();
+    QHBoxLayout *contentLayout = new QHBoxLayout(contentArea);
+    contentLayout->setContentsMargins(0, 0, 0, 0);
+    contentLayout->setSpacing(0);
+    mainLayout->addWidget(contentArea); // Adăugăm zona de conținut în layout-ul principal
+
+    // --- ZONA 2.1: SIDEBAR (În stânga, sub header) ---
+    sidebar = new QWidget();
+    sidebar->setFixedWidth(230);
+    sidebar->setObjectName("Sidebar");
+    setupSidebar();
+    contentLayout->addWidget(sidebar);
+
+    // --- ZONA 2.2: MAIN PANEL (În dreapta sidebar-ului) ---
+    mainPanel = new QWidget();
+    mainPanel->setObjectName("MainPanel");
+    QVBoxLayout *panelLayout = new QVBoxLayout(mainPanel);
+    contentLayout->addWidget(mainPanel);
+
+    // Configurare StackedWidget în interiorul Main Panel
+    stackedWidget = new QStackedWidget();
+    panelLayout->addWidget(stackedWidget);
+
+    QWidget *dashboardPage = new QWidget();
+    dashboardPage->setObjectName("PageContent");
+    setupDashboardPage(dashboardPage);
+
+    QWidget *productsPage = new QWidget();
+    productsPage->setObjectName("PageContent");
+    setupProductsPage(productsPage); // Inițializăm noua pagină
+
+    QWidget *alertsPage = new QWidget();
+    alertsPage->setObjectName("PageContent");
+    setupAlertsPage(alertsPage);
+
+    QWidget *transactionsPage = new QWidget();
+    transactionsPage->setObjectName("PageContent");
+    setupHistoryPage(transactionsPage);
+
+    // Adăugăm paginile
+    stackedWidget->addWidget(dashboardPage);        // Index 0
+    stackedWidget->addWidget(productsPage);         // Index 1
+    stackedWidget->addWidget(alertsPage);           // Index 2
+
+    stackedWidget->addWidget(transactionsPage);     // Index 3
+}
+
+void MainWindow::setupSidebar() {
+    QVBoxLayout *sideLayout = new QVBoxLayout(sidebar);
+    sideLayout->setContentsMargins(10, 20, 10, 20);
+    sideLayout->setSpacing(5);
+
+    // --- SECTIUNEA PRINCIPAL ---
+    QLabel *lblPrincipal = new QLabel("PRINCIPAL");
+    sideLayout->addWidget(lblPrincipal);
+
+    btnDashboard = new QPushButton("Meniu Principal");
+    btnProducts = new QPushButton("Produse");
+    btnAlerts = new QPushButton("Alerte");
+
+    sideLayout->addWidget(btnDashboard);
+    sideLayout->addWidget(btnProducts);
+    sideLayout->addWidget(btnAlerts);
+
+    sideLayout->addSpacing(20); // Spațiu între secțiuni
+
+    // --- SECTIUNEA TRANZACTII ---
+    QLabel *lblTranzactii = new QLabel("TRANZACTII");
+    sideLayout->addWidget(lblTranzactii);
+
+    btnSales = new QPushButton("Tranzactie noua");
+    btnHistory = new QPushButton("Istoric Tranzactii");
+
+    sideLayout->addWidget(btnSales);
+    sideLayout->addWidget(btnHistory);
+
+    connect(btnDashboard, &QPushButton::clicked, this, [this]() { stackedWidget->setCurrentIndex(0); });
+    connect(btnProducts, &QPushButton::clicked, this, [this]() { stackedWidget->setCurrentIndex(1); });
+    connect(btnAlerts, &QPushButton::clicked, this, [this]() { stackedWidget->setCurrentIndex(2); });
+    connect(btnHistory, &QPushButton::clicked, this, [this]() {stackedWidget->setCurrentIndex(3);});
+
+    connect(btnSales, &QPushButton::clicked, this, &MainWindow::onBtnSalesClicked);
+
+    sideLayout->addStretch(); // Împinge totul în sus (Industry Standard)
+
+}
+
+void MainWindow::setupDashboardPage(QWidget *page){
+    QVBoxLayout *layout = new QVBoxLayout(page);
+    layout->setContentsMargins(20, 20, 20, 20);
+    layout->setSpacing(20);
+
+    // --- 1. SECTIUNEA CARDURI (Orizontal) ---
+    QHBoxLayout *cardsLayout = new QHBoxLayout();
+    cardsLayout->setSpacing(15);
+
+    QString produseTotalelbl = QString::number(depozit.numarProduse());
+    QString valoareDepozit = QString::number(depozit.ValoareProduse());
+    QString produsesubAlertalbl = "--";
+    if(depozit.existaAlerte())
+        produsesubAlertalbl = QString::number(depozit.produseSubPrag().size());
+
+    // Creăm cardurile folosind ID-urile din QSS-ul tău
+    cardsLayout->addWidget(createStatCard("Produse Totale", produseTotalelbl, "CardTotal"));
+    cardsLayout->addWidget(createStatCard("Valoare Stoc", valoareDepozit, "CardValue"));
+    cardsLayout->addWidget(createStatCard("Sub Prag Alertă", produsesubAlertalbl, "CardAlert"));
+    cardsLayout->addWidget(createStatCard("Tranzacții", "--", "CardTrans"));
+
+    layout->addLayout(cardsLayout);
+    QString textAlerta = QString("Atenție: %1 produse necesită reaprovizionare imediată!").arg(produsesubAlertalbl);
+    QLabel *lblAlertBanner = new QLabel(textAlerta);
+    lblAlertBanner->setObjectName("AlertBanner"); // Folosește ID-ul din styles.qss
+    lblAlertBanner->setFixedHeight(40);
+    lblAlertBanner->setAlignment(Qt::AlignCenter);
+    if(!depozit.existaAlerte())
+        lblAlertBanner->setVisible(false);
+
+    layout->addWidget(lblAlertBanner);
+
+    // --- 3. LISTA PRODUSE (Tabel) ---
+    QLabel *lblTableTitle = new QLabel("Produse recente");
+    lblTableTitle->setObjectName("TableLabel");
+    layout->addWidget(lblTableTitle);
+
+    QTableWidget *dashboardTable = new QTableWidget(10, 4); // 10 rânduri dummy
+    dashboardTable->setHorizontalHeaderLabels({"Produs", "Pret", "Stoc", "Status"});
+    dashboardTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    dashboardTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    dashboardTable->setFrameShape(QFrame::NoFrame);
+    dashboardTable->setShowGrid(false);
+    dashboardTable->verticalHeader()->setVisible(false);
+    dashboardTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    dashboardTable->setObjectName("DashboardTable");
+
+    layout->addWidget(dashboardTable);
+
+}
+
+QWidget* MainWindow::createStatCard(QString title, QString value, QString objectName) {
+    QWidget *card = new QWidget();
+    card->setObjectName("StatCard"); // Stilul general de card
+    card->setProperty("type", objectName); // Opțional, pentru culori specifice fiecărui card
+
+    QVBoxLayout *layout = new QVBoxLayout(card);
+
+    QLabel *lblTitle = new QLabel(title);
+    lblTitle->setObjectName("StatTitle");
+
+    QLabel *lblValue = new QLabel(value);
+    lblValue->setObjectName("StatValue");
+
+    layout->addWidget(lblTitle);
+    layout->addWidget(lblValue);
+
+    return card;
+}
+
+void MainWindow::setupProductsPage(QWidget* page){
+    QVBoxLayout *mainLayout = new QVBoxLayout(page);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+    mainLayout->setSpacing(15);
+
+    // --- 1. BARA DE SUS (Controale, Căutare și Acțiuni) ---
+    QHBoxLayout *topBarLayout = new QHBoxLayout();
+    topBarLayout->setSpacing(10);
+
+    // Caseta de căutare (Textbar)
+    searchBar = new QLineEdit();
+    searchBar->setPlaceholderText("Caută un produs după nume");
+    searchBar->setObjectName("SearchBar");
+    searchBar->setMinimumHeight(35);
+    searchBar->setClearButtonEnabled(true);
+
+    // Butonul de filtrare
+    btnEdit = new QPushButton("Filtrare");
+    btnEdit->setObjectName("BtnFilter");
+    btnEdit->setMinimumHeight(35);
+    btnEdit->setCursor(Qt::PointingHandCursor);
+
+    // Butonul Adaugă Produs
+    btnAddProduct = new QPushButton("+ Adaugă Produs");
+    btnAddProduct->setObjectName("BtnAdd");
+    btnAddProduct->setMinimumHeight(35);
+    btnAddProduct->setCursor(Qt::PointingHandCursor);
+
+    // Butonul Șterge Produs
+    btnDeleteProduct = new QPushButton("- Șterge Produs");
+    btnDeleteProduct->setObjectName("BtnDelete");
+    btnDeleteProduct->setMinimumHeight(35);
+    btnDeleteProduct->setCursor(Qt::PointingHandCursor);
+    btnDeleteProduct->setEnabled(false);
+
+    // Asamblăm bara de sus
+    topBarLayout->addWidget(searchBar, 4);      // Îi dăm proporție mai mare (se va întinde mai mult)
+    topBarLayout->addSpacing(10);                // Un mic spațiu separator de siguranță
+    topBarLayout->addWidget(btnAddProduct, 1);
+    topBarLayout->addWidget(btnEdit, 1);
+    topBarLayout->addWidget(btnDeleteProduct, 1);
+
+    mainLayout->addLayout(topBarLayout);
+
+    // --- 2. TABELUL PRINCIPAL DE PRODUSE ---
+    productsTable = new QTableWidget();
+    productsTable->setObjectName("MainProductsTable");
+
+    productsTable->setColumnCount(4);
+    productsTable->setHorizontalHeaderLabels({"ID", "Nume Produs", "Stoc", "Preț (RON)"});
+    productsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+
+    // Comportament profesional pentru tabel (la fel ca la dashboard)
+    productsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    productsTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    productsTable->setSelectionMode(QAbstractItemView::SingleSelection); // Permitem ștergerea unui singur rând odată
+    productsTable->verticalHeader()->setVisible(false);
+    productsTable->setShowGrid(false);
+    productsTable->setFrameShape(QFrame::NoFrame);
+    productsTable->itemSelectionChanged();
+
+    mainLayout->addWidget(productsTable);
+
+    // --- 3. POPULARE DATE ---
+    populateProductsTable();
+
+    //Add button
+    connect(btnAddProduct, &QPushButton::clicked, this, [this]() {
+        AddProductDialog dialog(this);
+
+        // 2. Afișăm fereastra și așteptăm ca utilizatorul să o închidă
+        if (dialog.exec() == QDialog::Accepted) {
+
+            // 3. Extragem datele introduse
+            ProductData dateNoi = dialog.getProductData();
+
+            Produs nouprodus(dateNoi.nume,dateNoi.pret,dateNoi.cantitate, dateNoi.PragAlerta);
+            depozit.adaugaProdus(nouprodus);
+            m_storagedepozit.salveaza(depozit.produse());
+            UpdateUI();
+        }
+    });
+
+    connect(productsTable, &QTableWidget::itemSelectionChanged, this,[this](){
+        bool isRowSelected = productsTable->selectionModel()->hasSelection();
+        btnDeleteProduct->setEnabled(isRowSelected);
+    });
+
+    connect(btnEdit, &QPushButton::clicked,this,[this](){
+        int Product = productsTable->currentRow();
+        const Produs *produsPtr = depozit.gasesteProdusDupaId(productsTable->item(Product, 0)->text());
+
+        if (!produsPtr) {
+            QMessageBox::critical(this, "Eroare", "Produsul selectat nu mai există în depozit.");
+            return;
+        }
+        const Produs produsSnapshot = *produsPtr;   // copie — payload pentru tranzacție
+
+
+        EditProductDialog dialog(produsSnapshot, this);
+
+        if(dialog.exec() == QDialog::Accepted){
+            const Produs &produsEditat = dialog.getProdusCuModificari();
+
+            depozit.actualizeazaProdus(produsEditat);
+
+            m_storagedepozit.salveaza(depozit.produse());
+            UpdateUI();
+        }
+    });
+
+    //deletebutton
+    connect(btnDeleteProduct, &QPushButton::clicked, this, [this](){
+        int Product = productsTable->currentRow();
+        QString IDprodus = productsTable->item(Product, 0)->text();
+        QString nume = productsTable->item(Product, 1)->text();
+
+        QString textAccept = QString("Confirmati stergerea produsului cu numele '%1'\nSi id-ul: %2").arg(nume, IDprodus);
+        QMessageBox ConfirmDelete(this);
+        ConfirmDelete.setWindowTitle("Confirma stergerea");
+        ConfirmDelete.setText(textAccept);
+        ConfirmDelete.setInformativeText("Această acțiune este ireversibilă și va actualiza stocul total.");
+        ConfirmDelete.setIcon(QMessageBox::Warning);
+        QPushButton *btnConfirmDelete = ConfirmDelete.addButton("Sterge", QMessageBox::DestructiveRole);
+        QPushButton *btnCancel = ConfirmDelete.addButton("Anulează", QMessageBox::RejectRole);
+        ConfirmDelete.setDefaultButton(btnCancel);
+        ConfirmDelete.exec();
+
+        if (ConfirmDelete.clickedButton() == btnConfirmDelete) {
+            depozit.eliminaProdus(IDprodus);
+            m_storagedepozit.salveaza(depozit.produse());
+            UpdateUI();
+        }
+    });
+
+    // Search Bar
+    connect(searchBar, &QLineEdit::textChanged, this, [this](const QString &textCautat) {
+
+        QString textCautatLower = textCautat.toLower();
+
+        for (int row = 0; row < productsTable->rowCount(); ++row) {
+            bool randulSePotriveste = false;
+
+            QTableWidgetItem *itemNume = productsTable->item(row, 1);
+            QTableWidgetItem *itemSku = productsTable->item(row, 2);
+
+            if (itemNume && itemNume->text().toLower().contains(textCautatLower)) {
+                randulSePotriveste = true;
+            }
+
+            productsTable->setRowHidden(row, !randulSePotriveste);
+        }
+    });
+}
+
+void MainWindow::populateProductsTable(){
+    auto listaProduse = depozit.produse();
+
+    productsTable->setRowCount(0); // Curățăm tabelul înainte de redesenare
+
+    for (const auto& prod : listaProduse) {
+        int row = productsTable->rowCount();
+        productsTable->insertRow(row);
+
+        // Adăugăm celulele rând cu rând
+        productsTable->setItem(row, 0, new QTableWidgetItem(prod.second.id()));
+        productsTable->setItem(row, 1, new QTableWidgetItem(prod.second.nume()));
+        productsTable->setItem(row, 2, new QTableWidgetItem(QString::number(prod.second.cantitate())));
+        productsTable->setItem(row, 3, new QTableWidgetItem(QString::number(prod.second.pret(), 'f', 2))); // Afișare cu 2 zecimale
+
+        // Stil pentru textul celulelor (Opțional, aliniere la stânga/dreapta)
+        productsTable->item(row, 0)->setTextAlignment(Qt::AlignCenter);
+        productsTable->item(row, 2)->setTextAlignment(Qt::AlignCenter); // Cantitatea centrată
+    }
+}
+
+void MainWindow::setupAlertsPage(QWidget *page) {
+    QVBoxLayout *mainLayout = new QVBoxLayout(page);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+    mainLayout->setSpacing(15);
+
+    // --- 1. BARA DE SUS (Căutare și Acțiuni) ---
+    QHBoxLayout *topBarLayout = new QHBoxLayout();
+    topBarLayout->setSpacing(10);
+
+    searchAlertsBar = new QLineEdit();
+    searchAlertsBar->setPlaceholderText("Caută în alertele de stoc...");
+    searchAlertsBar->setObjectName("SearchBar");
+    searchAlertsBar->setMinimumHeight(35);
+    searchAlertsBar->setClearButtonEnabled(true);
+
+    // Un buton specific pentru această pagină (ex: pentru a da lista la achiziții)
+    btnExportReport = new QPushButton("Export");
+    btnExportReport->setObjectName("BtnFilter"); // Refolosim stilul de buton gri
+    btnExportReport->setMinimumHeight(35);
+    btnExportReport->setCursor(Qt::PointingHandCursor);
+
+    topBarLayout->addWidget(searchAlertsBar, 4);
+    topBarLayout->addWidget(btnExportReport, 1);
+
+    mainLayout->addLayout(topBarLayout);
+
+    // --- 2. TABELUL DE ALERTE ---
+    alertsTable = new QTableWidget();
+    alertsTable->setObjectName("MainProductsTable"); // Refolosim culorile tabelului de produse
+
+    // Nu avem nevoie de coloana de preț aici, ne interesează Stoc vs Prag
+    alertsTable->setColumnCount(4);
+    alertsTable->setHorizontalHeaderLabels({"ID", "Nume Produs", "Stoc Curent", "Prag Alertă"});
+    alertsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+
+    alertsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    alertsTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    alertsTable->verticalHeader()->setVisible(false);
+    alertsTable->setShowGrid(false);
+    alertsTable->setFrameShape(QFrame::NoFrame);
+
+    mainLayout->addWidget(alertsTable);
+    populateAlertsTable();
+
+    // --- 3. CĂUTARE DINAMICĂ (Specifică pentru tabelul de alerte) ---
+    connect(searchAlertsBar, &QLineEdit::textChanged, this, [this](const QString &textCautat) {
+        QString textCautatLower = textCautat.toLower();
+        for (int row = 0; row < alertsTable->rowCount(); ++row) {
+            bool match = false;
+            QTableWidgetItem *itemNume = alertsTable->item(row, 1);
+            QTableWidgetItem *itemSku = alertsTable->item(row, 2);
+
+            if (itemNume && itemNume->text().toLower().contains(textCautatLower)) {
+                match = true;
+            }
+            alertsTable->setRowHidden(row, !match);
+        }
+    });
+}
+
+void MainWindow::populateAlertsTable() {
+    // Luăm doar produsele cu stoc sub prag
+    auto listaAlerte = depozit.produseSubPrag();
+
+    alertsTable->setRowCount(0); // Curățăm tabelul
+
+    for (const auto& prod : listaAlerte) {
+        int row = alertsTable->rowCount();
+        alertsTable->insertRow(row);
+
+        // Presupunând că ai funcția getPragAlerta(). Dacă nu ai ID-ul ca string, ajustează cu QString::number()
+        alertsTable->setItem(row, 0, new QTableWidgetItem(prod.id()));
+        alertsTable->setItem(row, 1, new QTableWidgetItem(prod.nume()));
+
+        // --- COLORAȚIE SPECIALĂ PENTRU ALERTĂ ---
+        QTableWidgetItem *itemStoc = new QTableWidgetItem(QString::number(prod.cantitate()));
+        itemStoc->setForeground(QBrush(QColor("#dc3545"))); // Roșu de pericol
+        itemStoc->setFont(QFont("Arial", 10, QFont::Bold)); // Îl facem Bold
+        itemStoc->setTextAlignment(Qt::AlignCenter);
+
+        QTableWidgetItem *itemPrag = new QTableWidgetItem(QString::number(prod.pragAlerta()));
+        itemPrag->setTextAlignment(Qt::AlignCenter);
+
+        alertsTable->setItem(row, 2, itemStoc);
+        alertsTable->setItem(row, 3, itemPrag);
+    }
+}
+
+void MainWindow::setupHistoryPage(QWidget *page) {
+    QVBoxLayout *mainLayout = new QVBoxLayout(page);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+    mainLayout->setSpacing(15);
+
+    // --- 1. BARA DE SUS (Căutare și Filtre) ---
+    QHBoxLayout *topBarLayout = new QHBoxLayout();
+
+    searchHistoryBar = new QLineEdit();
+    searchHistoryBar->setPlaceholderText("Caută după produs, companie sau ID tranzacție...");
+    searchHistoryBar->setObjectName("SearchBar");
+    searchHistoryBar->setMinimumHeight(35);
+    searchHistoryBar->setClearButtonEnabled(true);
+
+    btnExportHistory = new QPushButton("Exportă Istoric");
+    btnExportHistory->setObjectName("BtnFilter"); // Stilul gri definit anterior
+    btnExportHistory->setMinimumHeight(35);
+
+    topBarLayout->addWidget(searchHistoryBar, 4);
+    topBarLayout->addWidget(btnExportHistory, 1);
+    mainLayout->addLayout(topBarLayout);
+
+    // --- 2. TABELUL DE TRANZACȚII ---
+    historyTable = new QTableWidget();
+    historyTable->setObjectName("MainProductsTable");
+
+    // Configurăm coloanele conform atributelor tale
+    historyTable->setColumnCount(7);
+    historyTable->setHorizontalHeaderLabels({
+        "Data/Ora", "ID", "Produs", "Tip", "Companie", "Cantitate", "Total (RON)"
+    });
+
+    historyTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    historyTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    historyTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    historyTable->verticalHeader()->setVisible(false);
+    historyTable->setShowGrid(false);
+
+    mainLayout->addWidget(historyTable);
+
+    // --- 3. LOGICA DE CĂUTARE DINAMICĂ ---
+    connect(searchHistoryBar, &QLineEdit::textChanged, this, [this](const QString &text) {
+        QString t = text.toLower();
+        for (int i = 0; i < historyTable->rowCount(); ++i) {
+            bool match = false;
+            // Căutăm în ID (Col 1), Produs (Col 2) și Companie (Col 4)
+            if (historyTable->item(i, 1)->text().toLower().contains(t) ||
+                historyTable->item(i, 2)->text().toLower().contains(t) ||
+                historyTable->item(i, 4)->text().toLower().contains(t)) {
+                match = true;
+            }
+            historyTable->setRowHidden(i, !match);
+        }
+    });
+
+    populateHistoryTable();
+}
+
+void MainWindow::populateHistoryTable() {
+    // Presupunem că ai o metodă în depozit care returnează vectorul de tranzacții
+    auto tranzactii = istoric.toate();
+
+    historyTable->setRowCount(0);
+
+    for (const auto& t : tranzactii) {
+        int row = historyTable->rowCount();
+        historyTable->insertRow(row);
+
+        // 1. Data și Ora (formatate frumos)
+        QString dataStr = t.timestamp().toString("dd/MM/yyyy HH:mm");
+        historyTable->setItem(row, 0, new QTableWidgetItem(dataStr));
+
+        // 2. ID Tranzacție (folosim font monospace pentru aspect tehnic)
+        QTableWidgetItem *idItem = new QTableWidgetItem(t.id());
+        idItem->setFont(QFont("Monospace", 9));
+        historyTable->setItem(row, 1, idItem);
+
+        // 3. Produs
+        historyTable->setItem(row, 2, new QTableWidgetItem(t.numeProdus()));
+
+        // 4. Tip Tranzacție (cu Badge de culoare)
+        QTableWidgetItem *tipItem = new QTableWidgetItem();
+        if (t.tip() == TipTranzactie::Achizitionare) {
+            tipItem->setText("➕ ACHIZIȚIE");
+            tipItem->setForeground(QBrush(QColor("#198754"))); // Verde
+        } else {
+            tipItem->setText("➖ VÂNZARE");
+            tipItem->setForeground(QBrush(QColor("#dc3545"))); // Roșu
+        }
+        tipItem->setFont(QFont("Arial", 9, QFont::Bold));
+        historyTable->setItem(row, 3, tipItem);
+
+        // 5. Companie
+        historyTable->setItem(row, 4, new QTableWidgetItem(t.numeCompanie()));
+
+        // 6. Cantitate
+        historyTable->setItem(row, 5, new QTableWidgetItem(QString::number(t.cantitate())));
+
+        // 7. Total (Cantitate * Pret Unitar)
+        double total = t.cantitate() * t.pretUnitar();
+        QTableWidgetItem *totalItem = new QTableWidgetItem(QString::number(total, 'f', 2) + " RON");
+        totalItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        historyTable->setItem(row, 6, totalItem);
+    }
+}
+
+void MainWindow::onBtnSalesClicked()
+{
+    // 1. Verificăm că există cel puțin un produs în depozit
+    if (depozit.esteGol()) {
+        QMessageBox::warning(this,
+                             "Niciun produs",
+                             "Nu există produse în depozit.\n"
+                             "Adaugă cel puțin un produs înainte de a înregistra o tranzacție.");
+        return;
+    }
+
+    // 2. Deschidem dialogul — îi pasăm depozitul ca să populeze ComboBox-ul
+    TransactionDialog dialog(depozit, this);
+
+    if (dialog.exec() != QDialog::Accepted)
+        return;   // utilizatorul a apăsat Anulează
+
+    // 3. Extragem datele completate de utilizator
+    TransactionData td = dialog.getTransactionData();
+
+    // 4. Validare: produsul ales există în depozit?
+    const Produs *produsPtr = depozit.gasesteProdusDupaId(td.produsId);
+    if (!produsPtr) {
+        QMessageBox::critical(this, "Eroare", "Produsul selectat nu mai există în depozit.");
+        return;
+    }
+    const Produs produsSnapshot = *produsPtr;   // copie — payload pentru tranzacție
+
+    // 5. Modificăm stocul în WarehouseManager (operatorii += / -=)
+    try {
+        if (td.tip == TipTranzactie::Achizitionare) {
+            depozit.adaugaCantitate(td.produsId, td.cantitate);
+        } else {
+            depozit.scadeCantitate(td.produsId, td.cantitate);  // aruncă dacă stoc insuficient
+        }
+    } catch (const std::underflow_error &e) {
+        QMessageBox::warning(this,
+                             "Stoc insuficient",
+                             QString("Nu se poate efectua vânzarea:\n%1").arg(e.what()));
+        return;
+    } catch (const std::exception &e) {
+        QMessageBox::critical(this, "Eroare", e.what());
+        return;
+    }
+
+    // 6. Construim obiectul Tranzactie<Produs> și îl adăugăm în istoric
+    TranzactieProdus tranzactie(
+        produsSnapshot.nume(),  // m_numeProdus
+        td.tip,                 // m_tip
+        td.companie,            // m_numeCompanie
+        td.cantitate,           // m_cantitate
+        td.pretUnitar,          // m_pretUnitar
+        produsSnapshot          // m_payload — snapshot Produs
+        );
+    // m_id și m_timestamp sunt generate automat în constructorul Tranzactie
+
+    istoric.adauga(tranzactie);   // adaugă în memorie + salvează automat prin storage
+
+    // 7. Salvăm și stocul actualizat
+    depozit.salveazaDate();
+
+    // 8. Reîmprospătăm UI-ul
+    UpdateUI();
+
+    // 9. Navigăm la istoricul de tranzacții ca feedback vizual
+    stackedWidget->setCurrentIndex(3);
+}
+
+void MainWindow::UpdateUI(){
+    populateProductsTable();
+    populateAlertsTable();
+    populateHistoryTable();
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
