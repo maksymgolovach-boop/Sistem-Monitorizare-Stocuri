@@ -312,7 +312,7 @@ QPushButton#BtnEdit:disabled {
 
 #BtnTransactionDialogSave:hover{
     background-color: #5ad651;
-    color: #5ad651;
+    color: white;
 }
 
 #BtnTransactionDialogCancel{

@@ -232,6 +232,19 @@ void MainWindow::updateHeaderBadges()
     m_headerAlertBadge->setStyleSheet(alertStyle);
 }
 
+void MainWindow::activateSidebarBtn(QPushButton *active)
+{
+    const QList<QPushButton*> navBtns = {btnDashboard, btnProducts, btnAlerts, btnHistory};
+    for (QPushButton *btn : navBtns) {
+        btn->setProperty("active", btn == active);
+        // unpolish + polish forțează Qt să re-evalueze regulile QSS
+        // cu noua valoare a proprietății dinamice "active"
+        btn->style()->unpolish(btn);
+        btn->style()->polish(btn);
+        btn->update();
+    }
+}
+
 void MainWindow::setupSidebar() {
     QVBoxLayout *sideLayout = new QVBoxLayout(sidebar);
     sideLayout->setContentsMargins(10, 20, 10, 20);
@@ -268,31 +281,19 @@ void MainWindow::setupSidebar() {
 
     connect(btnDashboard, &QPushButton::clicked, this, [this]() {
         stackedWidget->setCurrentIndex(0);
-        btnDashboard->setProperty("active", true);
-        btnProducts->setProperty("active", false);
-        btnAlerts->setProperty("active", false);
-        btnHistory->setProperty("active", false);
+        activateSidebarBtn(btnDashboard);
     });
     connect(btnProducts, &QPushButton::clicked, this, [this]() {
         stackedWidget->setCurrentIndex(1);
-        btnDashboard->setProperty("active", false);
-        btnProducts->setProperty("active", true);
-        btnAlerts->setProperty("active", false);
-        btnHistory->setProperty("active", false);
+        activateSidebarBtn(btnProducts);
     });
     connect(btnAlerts, &QPushButton::clicked, this, [this]() {
         stackedWidget->setCurrentIndex(2);
-        btnDashboard->setProperty("active", false);
-        btnProducts->setProperty("active", false);
-        btnAlerts->setProperty("active", true);
-        btnHistory->setProperty("active", false);
+        activateSidebarBtn(btnAlerts);
     });
     connect(btnHistory, &QPushButton::clicked, this, [this]() {
         stackedWidget->setCurrentIndex(3);
-        btnDashboard->setProperty("active", false);
-        btnProducts->setProperty("active", false);
-        btnAlerts->setProperty("active", false);
-        btnHistory->setProperty("active", true);
+        activateSidebarBtn(btnHistory);
     });
 
     connect(btnSales, &QPushButton::clicked, this, &MainWindow::onBtnSalesClicked);

@@ -138,7 +138,7 @@ bool TransactionDialog::valideazaDatele()
 
 void TransactionDialog::setupUI(const WarehouseManager& depozit) {
     this->setFixedSize(500, 550);
-    this->setStyleSheet("background-color: white;");
+    this->setStyleSheet("QDialog { background-color: white; }");
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(25, 20, 25, 20);

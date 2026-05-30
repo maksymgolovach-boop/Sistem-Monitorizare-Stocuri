@@ -27,7 +27,7 @@ void ProductDetailsDialog::setupUI(const Produs                       &produs,
 {
     setFixedSize(660, 580);
     setWindowTitle("Detalii Produs");
-    setStyleSheet("background-color: white;");
+    setStyleSheet("QDialog { background-color: white; }");
 
     QVBoxLayout *root = new QVBoxLayout(this);
     root->setContentsMargins(24, 20, 24, 20);

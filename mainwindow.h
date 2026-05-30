@@ -72,6 +72,14 @@ private:
     void updateHeaderBadges();   // sincronizează badge-urile din header cu datele live
     void updateClock();          // actualizează ceasul din status bar
 
+    /**
+     * @brief Marchează butonul @p active ca selectat în sidebar și resetează restul.
+     *
+     * Apelează unpolish/polish pe fiecare buton nav pentru a forța Qt să
+     * re-evalueze regulile QSS cu proprietatea dinamică "active" actualizată.
+     */
+    void activateSidebarBtn(QPushButton *active);
+
     /** Deschide ProductDetailsDialog pentru produsul cu ID-ul dat. */
     void showProductDetails(const QString &produsId);
 
