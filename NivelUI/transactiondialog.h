@@ -10,6 +10,7 @@
 #include <QDateTime>
 #include <QUuid>
 #include "../NivelStocareDate/warehousemanager.h" // Avem nevoie de lista de produse
+#include <QMessageBox>
 
 struct TransactionData {
     QString id;
@@ -30,9 +31,10 @@ public:
     TransactionData getTransactionData() const;
 
 private:
-    TipTranzactie m_tipCurent = TipTranzactie::Achizitionare;
-    QString m_generatedId;
-    QDateTime m_currentTimestamp;
+    TipTranzactie       m_tipCurent = TipTranzactie::Achizitionare;
+    QString             m_generatedId;
+    QDateTime           m_currentTimestamp;
+    const WarehouseManager &m_depozit;   // necesar pentru verificarea stocului la Vânzare
 
     QPushButton *btnTabAchizitie;
     QPushButton *btnTabVanzare;
@@ -43,7 +45,26 @@ private:
     QPushButton *btnConfirm;
 
     void setupUI(const WarehouseManager& depozit);
-    void valideazaDatele();
+
+    /**
+     * @brief Validează toate câmpurile obligatorii ale formularului.
+     *
+     * Verifică, în ordine:
+     *  1. Produs selectat (nu placeholder-ul gol)
+     *  2. Cantitate >= 1
+     *  3. Preț unitar > 0
+     *  4. Companie parteneră ne-goală
+     *  5. Stoc suficient (doar la Vânzare)
+     *
+     * La primul câmp invalid marchează câmpul cu border roșu,
+     * afișează un QMessageBox::warning și returnează false.
+     * Dacă totul este valid, resetează stilurile și returnează true.
+     *
+     * @return true  — toate câmpurile sunt valide
+     * @return false — cel puțin un câmp este invalid
+     */
+    bool valideazaDatele();
+
     void updateToggleStyle();
 };
 

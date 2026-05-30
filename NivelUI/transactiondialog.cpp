@@ -6,7 +6,10 @@
 #include <QLabel>
 #include <QFrame>
 
-TransactionDialog::TransactionDialog(const WarehouseManager& depozit, QWidget *parent) : QDialog(parent) {
+TransactionDialog::TransactionDialog(const WarehouseManager& depozit, QWidget *parent)
+    : QDialog(parent)
+    , m_depozit(depozit)
+{
     m_generatedId = QUuid::createUuid().toString(QUuid::WithoutBraces);
     m_currentTimestamp = QDateTime::currentDateTime();
 
@@ -26,17 +29,83 @@ TransactionDialog::TransactionDialog(const WarehouseManager& depozit, QWidget *p
         updateToggleStyle();
     });
 
-    connect(btnConfirm, &QPushButton::clicked, this, &QDialog::accept);
+    connect(btnConfirm, &QPushButton::clicked, this, [this]() {
+        if (valideazaDatele())
+            accept();
+    });
 }
 
-/*
-    *comboProduse;
-    QSpinBox *spinCantitate;
-    QDoubleSpinBox *spinPret;
-    QLineEdit *editCompanie;
-*/
-void TransactionDialog::valideazaDatele(){
-    if(comboProduse->currentIndex()==-1)
+bool TransactionDialog::valideazaDatele()
+{
+    // Stiluri reutilizabile
+    const QString styleEroare = "border: 1.5px solid #dc3545; border-radius: 5px;";
+    const QString styleNormal = "";   // QSS-ul global preia controlul
+
+    // ── 1. Produs selectat ────────────────────────────────────────────────────
+    if (comboProduse->currentData().toString().isEmpty()) {
+        comboProduse->setStyleSheet(styleEroare);
+        QMessageBox::warning(this,
+                             "Câmp obligatoriu",
+                             "Selectează un produs din listă înainte de a confirma.");
+        comboProduse->setFocus();
+        return false;
+    }
+    comboProduse->setStyleSheet(styleNormal);
+
+    // ── 2. Cantitate >= 1 ─────────────────────────────────────────────────────
+    if (spinCantitate->value() < 1) {
+        spinCantitate->setStyleSheet(styleEroare);
+        QMessageBox::warning(this,
+                             "Cantitate invalidă",
+                             "Cantitatea trebuie să fie de cel puțin 1 bucată.");
+        spinCantitate->setFocus();
+        return false;
+    }
+    spinCantitate->setStyleSheet(styleNormal);
+
+    // ── 3. Preț unitar > 0 ────────────────────────────────────────────────────
+    if (spinPret->value() <= 0.0) {
+        spinPret->setStyleSheet(styleEroare);
+        QMessageBox::warning(this,
+                             "Preț invalid",
+                             "Prețul unitar trebuie să fie mai mare decât 0 RON.");
+        spinPret->setFocus();
+        return false;
+    }
+    spinPret->setStyleSheet(styleNormal);
+
+    // ── 4. Companie ne-goală ──────────────────────────────────────────────────
+    if (editCompanie->text().trimmed().isEmpty()) {
+        editCompanie->setStyleSheet(styleEroare);
+        QMessageBox::warning(this,
+                             "Câmp obligatoriu",
+                             "Introdu numele companiei partenere (furnizor / client).");
+        editCompanie->setFocus();
+        return false;
+    }
+    editCompanie->setStyleSheet(styleNormal);
+
+    // ── 5. Stoc suficient (doar la Vânzare) ───────────────────────────────────
+    if (m_tipCurent == TipTranzactie::Vanzare) {
+        const QString produsId = comboProduse->currentData().toString();
+        const Produs *p = m_depozit.gasesteProdusDupaId(produsId);
+
+        if (p && spinCantitate->value() > p->cantitate()) {
+            spinCantitate->setStyleSheet(styleEroare);
+            QMessageBox::warning(this,
+                                 "Stoc insuficient",
+                                 QString("Stocul disponibil pentru \"%1\" este %2 buc.\n"
+                                         "Nu se poate vinde %3 buc.")
+                                     .arg(p->nume())
+                                     .arg(p->cantitate())
+                                     .arg(spinCantitate->value()));
+            spinCantitate->setFocus();
+            return false;
+        }
+        spinCantitate->setStyleSheet(styleNormal);
+    }
+
+    return true;   // toate câmpurile sunt valide
 }
 
 void TransactionDialog::setupUI(const WarehouseManager& depozit) {
