@@ -242,7 +242,7 @@ QTableWidget::item:focus {
     font-weight: bold;
 }
 #BtnDialogCancel:hover {
-    background-color: #ff6161;
+    background-color: #bb2d3b;
     color: white;
 }
 
