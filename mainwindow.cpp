@@ -245,6 +245,10 @@ void MainWindow::setupSidebar() {
     btnProducts = new QPushButton("Produse");
     btnAlerts = new QPushButton("Alerte");
 
+    btnDashboard->setProperty("active", true);
+    btnProducts->setProperty("active", false);
+    btnAlerts->setProperty("active", false);
+
     sideLayout->addWidget(btnDashboard);
     sideLayout->addWidget(btnProducts);
     sideLayout->addWidget(btnAlerts);
@@ -257,14 +261,39 @@ void MainWindow::setupSidebar() {
 
     btnSales = new QPushButton("Tranzactie noua");
     btnHistory = new QPushButton("Istoric Tranzactii");
+    btnHistory->setProperty("active", false);
 
     sideLayout->addWidget(btnSales);
     sideLayout->addWidget(btnHistory);
 
-    connect(btnDashboard, &QPushButton::clicked, this, [this]() { stackedWidget->setCurrentIndex(0); });
-    connect(btnProducts, &QPushButton::clicked, this, [this]() { stackedWidget->setCurrentIndex(1); });
-    connect(btnAlerts, &QPushButton::clicked, this, [this]() { stackedWidget->setCurrentIndex(2); });
-    connect(btnHistory, &QPushButton::clicked, this, [this]() {stackedWidget->setCurrentIndex(3);});
+    connect(btnDashboard, &QPushButton::clicked, this, [this]() {
+        stackedWidget->setCurrentIndex(0);
+        btnDashboard->setProperty("active", true);
+        btnProducts->setProperty("active", false);
+        btnAlerts->setProperty("active", false);
+        btnHistory->setProperty("active", false);
+    });
+    connect(btnProducts, &QPushButton::clicked, this, [this]() {
+        stackedWidget->setCurrentIndex(1);
+        btnDashboard->setProperty("active", false);
+        btnProducts->setProperty("active", true);
+        btnAlerts->setProperty("active", false);
+        btnHistory->setProperty("active", false);
+    });
+    connect(btnAlerts, &QPushButton::clicked, this, [this]() {
+        stackedWidget->setCurrentIndex(2);
+        btnDashboard->setProperty("active", false);
+        btnProducts->setProperty("active", false);
+        btnAlerts->setProperty("active", true);
+        btnHistory->setProperty("active", false);
+    });
+    connect(btnHistory, &QPushButton::clicked, this, [this]() {
+        stackedWidget->setCurrentIndex(3);
+        btnDashboard->setProperty("active", false);
+        btnProducts->setProperty("active", false);
+        btnAlerts->setProperty("active", false);
+        btnHistory->setProperty("active", true);
+    });
 
     connect(btnSales, &QPushButton::clicked, this, &MainWindow::onBtnSalesClicked);
 

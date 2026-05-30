@@ -168,6 +168,12 @@ void TransactionDialog::setupUI(const WarehouseManager& depozit) {
     btnTabVanzare = new QPushButton("⬆ Vanzare");
     btnTabAchizitie->setFixedHeight(40);
     btnTabVanzare->setFixedHeight(40);
+    btnTabAchizitie->setObjectName("ToggleBtn");
+    btnTabVanzare->setObjectName("ToggleBtn");
+
+    btnTabAchizitie->setProperty("active", true);
+    btnTabVanzare->setProperty("active", false);
+
     toggleLayout->addWidget(btnTabAchizitie);
     toggleLayout->addWidget(btnTabVanzare);
     mainLayout->addLayout(toggleLayout);
@@ -258,9 +264,11 @@ void TransactionDialog::setupUI(const WarehouseManager& depozit) {
     // --- 7. FOOTER ---
     QHBoxLayout *footer = new QHBoxLayout();
     QPushButton *btnCancel = new QPushButton("✕ Anulează");
-    btnCancel->setObjectName("BtnDialogCancel");
+    btnCancel->setObjectName("BtnTransactionDialogCancel");
+    btnCancel->setCursor(Qt::PointingHandCursor);
     btnConfirm = new QPushButton("✓ Confirmă achiziție");
-    btnConfirm->setObjectName("BtnDialogSave");
+    btnConfirm->setObjectName("BtnTransactionDialogSave");
+    btnConfirm->setCursor(Qt::PointingHandCursor);
 
     footer->addWidget(new QLabel("<font color='red'>*</font> obligatoriu"));
     footer->addStretch();
@@ -272,11 +280,17 @@ void TransactionDialog::setupUI(const WarehouseManager& depozit) {
 }
 
 void TransactionDialog::updateToggleStyle() {
-    QString active = "background-color: white; border: 2px solid #000; border-radius: 8px; font-weight: bold;";
-    QString inactive = "background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; color: #666;";
 
-    btnTabAchizitie->setStyleSheet(m_tipCurent == TipTranzactie::Achizitionare ? active : inactive);
-    btnTabVanzare->setStyleSheet(m_tipCurent == TipTranzactie::Vanzare ? active : inactive);
+    btnTabAchizitie->setProperty("active", m_tipCurent == TipTranzactie::Achizitionare);
+    btnTabVanzare->setProperty("active", m_tipCurent == TipTranzactie::Vanzare);
+
+    // FORȚĂM REÎMPROSPĂTAREA STILULUI (Esential!)
+    btnTabAchizitie->style()->unpolish(btnTabAchizitie);
+    btnTabAchizitie->style()->polish(btnTabAchizitie);
+
+    btnTabVanzare->style()->unpolish(btnTabVanzare);
+    btnTabVanzare->style()->polish(btnTabVanzare);
+
 }
 
 TransactionData TransactionDialog::getTransactionData() const {
