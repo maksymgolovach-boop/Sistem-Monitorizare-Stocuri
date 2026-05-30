@@ -170,7 +170,7 @@ void ProductDetailsDialog::setupUI(const Produs                       &produs,
                       return a.timestamp() > b.timestamp();
                   });
         if (recente.size() > 10)
-            recente.resize(10);
+            recente.erase(recente.begin() + 10, recente.end());
 
         QTableWidget *tbl = new QTableWidget();
         tbl->setColumnCount(5);
