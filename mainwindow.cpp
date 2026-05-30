@@ -186,8 +186,9 @@ void MainWindow::setupDashboardPage(QWidget *page){
     layout->addWidget(lblTableTitle);
 
     dashboardTable = new QTableWidget();
-    dashboardTable->setColumnCount(4);
-    dashboardTable->setHorizontalHeaderLabels({"Produs", "Preț (RON)", "Stoc", "Status"});
+    dashboardTable->setColumnCount(5);
+    dashboardTable->setHorizontalHeaderLabels(
+        {"Produs", "Categorie", "Preț (RON)", "Stoc", "Status"});
     dashboardTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     dashboardTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     dashboardTable->setFrameShape(QFrame::NoFrame);
@@ -267,9 +268,12 @@ void MainWindow::populateDashboard()
         QTableWidgetItem *numeItem = new QTableWidgetItem(p->nume());
         numeItem->setData(Qt::UserRole, p->id());
         dashboardTable->setItem(row, 0, numeItem);
-        dashboardTable->setItem(row, 1, new QTableWidgetItem(
-            QString::number(p->pret(), 'f', 2)));
+
+        dashboardTable->setItem(row, 1, new QTableWidgetItem(p->categorie())); // Categorie
+
         dashboardTable->setItem(row, 2, new QTableWidgetItem(
+            QString::number(p->pret(), 'f', 2)));
+        dashboardTable->setItem(row, 3, new QTableWidgetItem(
             QString::number(p->cantitate())));
 
         // Status cu culoare
@@ -283,7 +287,7 @@ void MainWindow::populateDashboard()
         }
         statusItem->setFont(QFont("Arial", 9, QFont::Bold));
         statusItem->setTextAlignment(Qt::AlignCenter);
-        dashboardTable->setItem(row, 3, statusItem);
+        dashboardTable->setItem(row, 4, statusItem);
     }
 }
 
@@ -349,8 +353,9 @@ void MainWindow::setupProductsPage(QWidget* page){
     productsTable = new QTableWidget();
     productsTable->setObjectName("MainProductsTable");
 
-    productsTable->setColumnCount(5);
-    productsTable->setHorizontalHeaderLabels({"ID", "Nume Produs", "Stoc", "Preț (RON)", "Nr. Tranzacții"});
+    productsTable->setColumnCount(6);
+    productsTable->setHorizontalHeaderLabels(
+        {"ID", "Nume Produs", "Categorie", "Stoc", "Preț (RON)", "Nr. Tranzacții"});
     productsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 
     // Comportament profesional pentru tabel (la fel ca la dashboard)
@@ -384,7 +389,8 @@ void MainWindow::setupProductsPage(QWidget* page){
             // 3. Extragem datele introduse
             ProductData dateNoi = dialog.getProductData();
 
-            Produs nouprodus(dateNoi.nume,dateNoi.pret,dateNoi.cantitate, dateNoi.PragAlerta);
+            Produs nouprodus(dateNoi.nume, dateNoi.pret, dateNoi.cantitate,
+                             dateNoi.PragAlerta, dateNoi.categorie);
             depozit.adaugaProdus(nouprodus);
             m_storagedepozit.salveaza(depozit.produse());
             UpdateUI();
@@ -515,17 +521,19 @@ void MainWindow::populateProductsTable()
 
         productsTable->setItem(row, 1, new QTableWidgetItem(p.nume()));
 
+        productsTable->setItem(row, 2, new QTableWidgetItem(p.categorie()));  // Categorie
+
         auto *cantiItem = new QTableWidgetItem(QString::number(p.cantitate()));
         cantiItem->setTextAlignment(Qt::AlignCenter);
-        productsTable->setItem(row, 2, cantiItem);
+        productsTable->setItem(row, 3, cantiItem);
 
-        productsTable->setItem(row, 3, new QTableWidgetItem(
+        productsTable->setItem(row, 4, new QTableWidgetItem(
             QString::number(p.pret(), 'f', 2)));
 
         int cnt = nrTranz.count(p.id()) ? nrTranz.at(p.id()) : 0;
         auto *tranzItem = new QTableWidgetItem(QString::number(cnt));
         tranzItem->setTextAlignment(Qt::AlignCenter);
-        productsTable->setItem(row, 4, tranzItem);
+        productsTable->setItem(row, 5, tranzItem);
     }
 
     // ── 5. Reaplică filtrul de căutare activ ─────────────────────────────────

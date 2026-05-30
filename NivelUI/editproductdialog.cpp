@@ -49,6 +49,7 @@ Produs EditProductDialog::getProdusCuModificari() const
     actualizat.setCantitate (spinCantitate->value());
     actualizat.setPret      (spinPret->value());
     actualizat.setPragAlerta(spinPrag->value());
+    actualizat.setCategorie (comboCategorie->currentText().trimmed());
 
     return actualizat;
 }
@@ -60,7 +61,7 @@ Produs EditProductDialog::getProdusCuModificari() const
 void EditProductDialog::setupUI()
 {
     this->setWindowTitle("Modifică produs");
-    this->setFixedSize(500, 600);
+    this->setFixedSize(500, 650);
     this->setStyleSheet("QDialog { background-color: white; }");
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
@@ -184,6 +185,24 @@ void EditProductDialog::setupUI()
     formLayout->addWidget(spinPrag);
     formLayout->addWidget(lblPragHint);
 
+    // ── Categorie ──────────────────────────────────────────────────────────────
+    QLabel *lblCateg = new QLabel("Categorie <font color='#dc3545'>*</font>");
+    lblCateg->setStyleSheet("font-weight: bold; color: #495057;");
+
+    comboCategorie = new QComboBox();
+    comboCategorie->setObjectName("ModernInput");
+    comboCategorie->setEditable(true);
+    comboCategorie->setInsertPolicy(QComboBox::NoInsert);
+    comboCategorie->lineEdit()->setPlaceholderText("Alege sau scrie o categorie...");
+    for (const QString &cat : {
+             "Alimentare", "Băuturi", "Electronice", "Electrocasnice",
+             "Îmbrăcăminte", "Cosmetice", "Produse de curățenie",
+             "Papetărie", "Mobilier", "Materiale construcții", "Altele"})
+        comboCategorie->addItem(cat);
+
+    formLayout->addWidget(lblCateg);
+    formLayout->addWidget(comboCategorie);
+
     mainLayout->addLayout(formLayout);
     mainLayout->addStretch();
 
@@ -226,4 +245,12 @@ void EditProductDialog::populateCampuri()
     spinCantitate->setValue(m_produsOriginal.cantitate());
     spinPret->setValue(m_produsOriginal.pret());
     spinPrag->setValue(m_produsOriginal.pragAlerta());
+
+    // Pre-selectăm categoria existentă; dacă nu e în listă, o adăugăm temporar
+    const QString cat = m_produsOriginal.categorie();
+    int idx = comboCategorie->findText(cat);
+    if (idx >= 0)
+        comboCategorie->setCurrentIndex(idx);
+    else
+        comboCategorie->setCurrentText(cat);
 }

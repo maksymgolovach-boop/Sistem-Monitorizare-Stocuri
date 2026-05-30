@@ -12,7 +12,8 @@ public:
     explicit Produs(const QString &nume,
                     double         pret,
                     int            cantitate  = 0,
-                    int            pragAlerta = 0);
+                    int            pragAlerta = 0,
+                    const QString &categorie  = "Necategorizat");
 
     // Constructor de copiere
     Produs(const Produs &other);
@@ -29,12 +30,14 @@ public:
     int     cantitate()  const;
     double  pret()       const;
     int     pragAlerta() const;
+    QString categorie()  const;
 
     // ── Setteri ───────────────────────────────────────────────────────────────
     void setNume      (const QString &nume);
     void setCantitate (int cantitate);
     void setPret      (double pret);
     void setPragAlerta(int pragAlerta);
+    void setCategorie (const QString &categorie);
     // ID-ul nu are setter — se generează automat și nu se modifică din exterior
 
     // ── Logică de alertă ──────────────────────────────────────────────────────
@@ -61,6 +64,7 @@ private:
     int     m_cantitate;
     double  m_pret;
     int     m_pragAlerta;
+    QString m_categorie;
 
     void genereazaId();
 };

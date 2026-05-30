@@ -85,6 +85,11 @@ void ProductDetailsDialog::setupUI(const Produs                       &produs,
         cards->setSpacing(10);
 
         cards->addWidget(createInfoCard(
+            "Categorie",
+            produs.categorie(),
+            "#0d6efd"));
+
+        cards->addWidget(createInfoCard(
             "Preț Unitar",
             QString::number(produs.pret(), 'f', 2) + " RON"));
 

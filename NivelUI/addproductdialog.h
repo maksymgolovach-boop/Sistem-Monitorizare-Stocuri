@@ -7,6 +7,7 @@
 #include <QDoubleSpinBox>
 #include <QPushButton>
 #include <QLabel>
+#include <QComboBox>
 #include <QString>
 #include <QUuid>
 
@@ -14,9 +15,10 @@
 struct ProductData {
     QString ID;
     QString nume;
-    int cantitate;
-    double pret;
-    int PragAlerta;
+    int     cantitate;
+    double  pret;
+    int     PragAlerta;
+    QString categorie;
 };
 
 class AddProductDialog : public QDialog {
@@ -31,10 +33,11 @@ public:
 private:
     QString generatedId;
 
-    QLineEdit *editNume;
-    QSpinBox *spinCantitate;
+    QLineEdit      *editNume;
+    QSpinBox       *spinCantitate;
     QDoubleSpinBox *spinPret;
-    QSpinBox *spinPrag;
+    QSpinBox       *spinPrag;
+    QComboBox      *comboCategorie;
 
     QPushButton *btnSave;
     QPushButton *btnCancel;

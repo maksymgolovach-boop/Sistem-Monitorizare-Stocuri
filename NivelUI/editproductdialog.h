@@ -7,6 +7,7 @@
 #include <QDoubleSpinBox>
 #include <QPushButton>
 #include <QLabel>
+#include <QComboBox>
 
 #include "../LibrarieModele/Produs.h"
 
@@ -48,6 +49,7 @@ private:
     QSpinBox       *spinCantitate;
     QDoubleSpinBox *spinPret;
     QSpinBox       *spinPrag;
+    QComboBox      *comboCategorie;
     QPushButton    *btnSave;
     QPushButton    *btnCancel;
 

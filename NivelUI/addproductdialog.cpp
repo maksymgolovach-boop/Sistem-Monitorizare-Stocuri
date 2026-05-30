@@ -30,7 +30,7 @@ AddProductDialog::AddProductDialog(QWidget *parent) : QDialog(parent) {
 
 void AddProductDialog::setupUI() {
     this->setWindowTitle("Adaugă produs nou");
-    this->setFixedSize(500, 600); // Dimensiune fixă pentru un aspect modal solid
+    this->setFixedSize(500, 650);
     this->setStyleSheet("QDialog { background-color: white; }");
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
@@ -150,6 +150,24 @@ void AddProductDialog::setupUI() {
     formLayout->addWidget(spinPrag);
     formLayout->addWidget(lblPragHint);
 
+    // ── Categorie ──────────────────────────────────────────────────────────────
+    QLabel *lblCateg = new QLabel("Categorie <font color='#dc3545'>*</font>");
+    lblCateg->setStyleSheet("font-weight: bold; color: #495057;");
+
+    comboCategorie = new QComboBox();
+    comboCategorie->setObjectName("ModernInput");
+    comboCategorie->setEditable(true);
+    comboCategorie->setInsertPolicy(QComboBox::NoInsert);
+    comboCategorie->lineEdit()->setPlaceholderText("Alege sau scrie o categorie...");
+    for (const QString &cat : {
+             "Alimentare", "Băuturi", "Electronice", "Electrocasnice",
+             "Îmbrăcăminte", "Cosmetice", "Produse de curățenie",
+             "Papetărie", "Mobilier", "Materiale construcții", "Altele"})
+        comboCategorie->addItem(cat);
+
+    formLayout->addWidget(lblCateg);
+    formLayout->addWidget(comboCategorie);
+
     mainLayout->addLayout(formLayout);
     mainLayout->addStretch();
 
@@ -188,6 +206,7 @@ ProductData AddProductDialog::getProductData() const {
         editNume->text().trimmed(),
         spinCantitate->value(),
         spinPret->value(),
-        spinPrag->value()
+        spinPrag->value(),
+        comboCategorie->currentText().trimmed()
     };
 }

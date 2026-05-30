@@ -17,11 +17,13 @@ Produs::Produs()
 Produs::Produs(const QString &nume,
                double         pret,
                int            cantitate,
-               int            pragAlerta)
-    : m_nume(nume)
-    , m_cantitate(cantitate)
-    , m_pret(pret)
+               int            pragAlerta,
+               const QString &categorie)
+    : m_nume      (nume)
+    , m_cantitate (cantitate)
+    , m_pret      (pret)
     , m_pragAlerta(pragAlerta)
+    , m_categorie (categorie.trimmed().isEmpty() ? "Necategorizat" : categorie.trimmed())
 {
     genereazaId();
 }
@@ -33,6 +35,7 @@ Produs::Produs(const Produs &other)
     , m_cantitate (other.m_cantitate)
     , m_pret      (other.m_pret)
     , m_pragAlerta(other.m_pragAlerta)
+    , m_categorie (other.m_categorie)
 {}
 
 // Operator de atribuire
@@ -44,6 +47,7 @@ Produs &Produs::operator=(const Produs &other)
         m_cantitate  = other.m_cantitate;
         m_pret       = other.m_pret;
         m_pragAlerta = other.m_pragAlerta;
+        m_categorie  = other.m_categorie;
     }
     return *this;
 }
@@ -55,6 +59,7 @@ QString Produs::id()         const { return m_id;         }
 int     Produs::cantitate()  const { return m_cantitate;  }
 double  Produs::pret()       const { return m_pret;       }
 int     Produs::pragAlerta() const { return m_pragAlerta; }
+QString Produs::categorie()  const { return m_categorie;  }
 
 // ── Setteri ───────────────────────────────────────────────────────────────────
 
@@ -84,6 +89,11 @@ void Produs::setPragAlerta(int pragAlerta)
     if (pragAlerta < 0)
         throw std::invalid_argument("Pragul de alertă nu poate fi negativ.");
     m_pragAlerta = pragAlerta;
+}
+
+void Produs::setCategorie(const QString &categorie)
+{
+    m_categorie = categorie.trimmed().isEmpty() ? "Necategorizat" : categorie.trimmed();
 }
 
 // ── Logică de alertă ──────────────────────────────────────────────────────────
@@ -124,6 +134,7 @@ QJsonObject Produs::toJson() const
     obj["cantitate"]  = m_cantitate;
     obj["pret"]       = m_pret;
     obj["pragAlerta"] = m_pragAlerta;
+    obj["categorie"]  = m_categorie;
     return obj;
 }
 
@@ -136,6 +147,8 @@ Produs Produs::fromJson(const QJsonObject &obj)
     p.m_cantitate  = obj["cantitate"].toInt();
     p.m_pret       = obj["pret"].toDouble();
     p.m_pragAlerta = obj["pragAlerta"].toInt();
+    // Compatibilitate cu fișierele vechi (fără câmpul "categorie")
+    p.m_categorie  = obj["categorie"].toString("Necategorizat");
     return p;
 }
 
@@ -149,7 +162,8 @@ QDebug operator<<(QDebug dbg, const Produs &p)
     << "nume="       << p.m_nume       << ", "
     << "cantitate="  << p.m_cantitate  << ", "
     << "pret="       << p.m_pret       << " RON, "
-    << "pragAlerta=" << p.m_pragAlerta
+    << "pragAlerta=" << p.m_pragAlerta << ", "
+    << "categorie="  << p.m_categorie
     << ")";
     return dbg;
 }
