@@ -10,6 +10,7 @@
 #include <QLineEdit>
 #include <QTableWidget>
 #include <QLabel>
+#include <QComboBox>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -34,6 +35,10 @@ private:
     WarehouseManager depozit;
     IstoricTranzactii istoric;
 
+    // ── Enumerații sortare ────────────────────────────────────────────────────
+    enum class SortProduse { Default, PretAsc, PretDesc, CantiCresc, CantiDesc, NrTranzactii };
+    enum class SortAlerte  { Default, PragDesc, PragCresc, CantiCresc, CantiDesc, Raport };
+
     void setupLayout(); // Metoda unde construim structura
     void setupSidebar();
     void setupDashboardPage(QWidget *page);
@@ -50,6 +55,9 @@ private:
 
     void onBtnSalesClicked();
     void UpdateUI();
+
+    void applyProductsSearch();
+    void applyAlertsSearch();
 
     // Zonele principale
     QWidget *sidebar;
@@ -72,6 +80,13 @@ private:
     QPushButton *btnAddProduct;
     QPushButton *btnDeleteProduct;
     QTableWidget *productsTable;
+
+    // ── Stare sortare ─────────────────────────────────────────────────────────
+    SortProduse  m_sortProduse       = SortProduse::Default;
+    SortAlerte   m_sortAlerte        = SortAlerte::Default;
+
+    QComboBox   *comboFilterProducts = nullptr;
+    QComboBox   *comboFilterAlerts   = nullptr;
 
     // Elemente UI pentru Dashboard
     QLabel       *dashboardAlertValue  = nullptr;  // valoarea din cardul "Sub Prag Alertă"

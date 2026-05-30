@@ -292,11 +292,24 @@ void MainWindow::setupProductsPage(QWidget* page){
     searchBar->setMinimumHeight(35);
     searchBar->setClearButtonEnabled(true);
 
-    // Butonul de filtrare
-    btnEdit = new QPushButton("Filtrare");
+    // Butonul de editare
+    btnEdit = new QPushButton("✎ Editează");
     btnEdit->setObjectName("BtnFilter");
     btnEdit->setMinimumHeight(35);
     btnEdit->setCursor(Qt::PointingHandCursor);
+    btnEdit->setEnabled(false);   // activ doar când e selectat un rând
+
+    // ComboBox de sortare
+    comboFilterProducts = new QComboBox();
+    comboFilterProducts->setObjectName("BtnFilter");
+    comboFilterProducts->setMinimumHeight(35);
+    comboFilterProducts->setCursor(Qt::PointingHandCursor);
+    comboFilterProducts->addItem("▼ Sortare implicită");        // index 0 → Default
+    comboFilterProducts->addItem("Preț ↑ Crescător");           // index 1 → PretAsc
+    comboFilterProducts->addItem("Preț ↓ Descrescător");        // index 2 → PretDesc
+    comboFilterProducts->addItem("Cantitate ↑ Crescătoare");    // index 3 → CantiCresc
+    comboFilterProducts->addItem("Cantitate ↓ Descrescătoare"); // index 4 → CantiDesc
+    comboFilterProducts->addItem("Nr. Tranzacții ↓");           // index 5 → NrTranzactii
 
     // Butonul Adaugă Produs
     btnAddProduct = new QPushButton("+ Adaugă Produs");
@@ -312,9 +325,10 @@ void MainWindow::setupProductsPage(QWidget* page){
     btnDeleteProduct->setEnabled(false);
 
     // Asamblăm bara de sus
-    topBarLayout->addWidget(searchBar, 4);      // Îi dăm proporție mai mare (se va întinde mai mult)
-    topBarLayout->addSpacing(10);                // Un mic spațiu separator de siguranță
+    topBarLayout->addWidget(searchBar, 4);
+    topBarLayout->addSpacing(10);
     topBarLayout->addWidget(btnAddProduct, 1);
+    topBarLayout->addWidget(comboFilterProducts, 2);
     topBarLayout->addWidget(btnEdit, 1);
     topBarLayout->addWidget(btnDeleteProduct, 1);
 
@@ -324,8 +338,8 @@ void MainWindow::setupProductsPage(QWidget* page){
     productsTable = new QTableWidget();
     productsTable->setObjectName("MainProductsTable");
 
-    productsTable->setColumnCount(4);
-    productsTable->setHorizontalHeaderLabels({"ID", "Nume Produs", "Stoc", "Preț (RON)"});
+    productsTable->setColumnCount(5);
+    productsTable->setHorizontalHeaderLabels({"ID", "Nume Produs", "Stoc", "Preț (RON)", "Nr. Tranzacții"});
     productsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 
     // Comportament profesional pentru tabel (la fel ca la dashboard)
@@ -362,6 +376,20 @@ void MainWindow::setupProductsPage(QWidget* page){
     connect(productsTable, &QTableWidget::itemSelectionChanged, this,[this](){
         bool isRowSelected = productsTable->selectionModel()->hasSelection();
         btnDeleteProduct->setEnabled(isRowSelected);
+        btnEdit->setEnabled(isRowSelected);
+    });
+
+    // Sortare produse
+    connect(comboFilterProducts, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, [this](int index) {
+        static const SortProduse mapare[] = {
+            SortProduse::Default,
+            SortProduse::PretAsc,   SortProduse::PretDesc,
+            SortProduse::CantiCresc, SortProduse::CantiDesc,
+            SortProduse::NrTranzactii
+        };
+        m_sortProduse = mapare[index];
+        populateProductsTable();
     });
 
     connect(btnEdit, &QPushButton::clicked,this,[this](){
@@ -411,45 +439,79 @@ void MainWindow::setupProductsPage(QWidget* page){
         }
     });
 
-    // Search Bar
-    connect(searchBar, &QLineEdit::textChanged, this, [this](const QString &textCautat) {
-
-        QString textCautatLower = textCautat.toLower();
-
-        for (int row = 0; row < productsTable->rowCount(); ++row) {
-            bool randulSePotriveste = false;
-
-            QTableWidgetItem *itemNume = productsTable->item(row, 1);
-            QTableWidgetItem *itemSku = productsTable->item(row, 2);
-
-            if (itemNume && itemNume->text().toLower().contains(textCautatLower)) {
-                randulSePotriveste = true;
-            }
-
-            productsTable->setRowHidden(row, !randulSePotriveste);
-        }
-    });
+    // Search Bar — delegăm la metoda reutilizabilă
+    connect(searchBar, &QLineEdit::textChanged, this, [this]() { applyProductsSearch(); });
 }
 
-void MainWindow::populateProductsTable(){
-    auto listaProduse = depozit.produse();
+void MainWindow::populateProductsTable()
+{
+    // ── 1. Construim lista de copii pentru sortare ────────────────────────────
+    std::vector<Produs> lista;
+    lista.reserve(depozit.produse().size());
+    for (const auto &pereche : depozit.produse())
+        lista.push_back(pereche.second);
 
-    productsTable->setRowCount(0); // Curățăm tabelul înainte de redesenare
+    // ── 2. Numărăm tranzacțiile per produs (payload().id()) ──────────────────
+    std::unordered_map<QString, int> nrTranz;
+    for (const auto &t : istoric.toate())
+        nrTranz[t.payload().id()]++;
 
-    for (const auto& prod : listaProduse) {
+    // ── 3. Sortăm conform opțiunii curente ───────────────────────────────────
+    switch (m_sortProduse) {
+    case SortProduse::PretAsc:
+        std::sort(lista.begin(), lista.end(),
+                  [](const Produs &a, const Produs &b){ return a.pret() < b.pret(); });
+        break;
+    case SortProduse::PretDesc:
+        std::sort(lista.begin(), lista.end(),
+                  [](const Produs &a, const Produs &b){ return a.pret() > b.pret(); });
+        break;
+    case SortProduse::CantiCresc:
+        std::sort(lista.begin(), lista.end(),
+                  [](const Produs &a, const Produs &b){ return a.cantitate() < b.cantitate(); });
+        break;
+    case SortProduse::CantiDesc:
+        std::sort(lista.begin(), lista.end(),
+                  [](const Produs &a, const Produs &b){ return a.cantitate() > b.cantitate(); });
+        break;
+    case SortProduse::NrTranzactii:
+        std::sort(lista.begin(), lista.end(),
+                  [&nrTranz](const Produs &a, const Produs &b){
+                      return nrTranz[a.id()] > nrTranz[b.id()];
+                  });
+        break;
+    default:
+        break;
+    }
+
+    // ── 4. Populăm tabelul ───────────────────────────────────────────────────
+    productsTable->setRowCount(0);
+
+    for (const Produs &p : lista) {
         int row = productsTable->rowCount();
         productsTable->insertRow(row);
 
-        // Adăugăm celulele rând cu rând
-        productsTable->setItem(row, 0, new QTableWidgetItem(prod.second.id()));
-        productsTable->setItem(row, 1, new QTableWidgetItem(prod.second.nume()));
-        productsTable->setItem(row, 2, new QTableWidgetItem(QString::number(prod.second.cantitate())));
-        productsTable->setItem(row, 3, new QTableWidgetItem(QString::number(prod.second.pret(), 'f', 2))); // Afișare cu 2 zecimale
+        auto *idItem = new QTableWidgetItem(p.id());
+        idItem->setTextAlignment(Qt::AlignCenter);
+        productsTable->setItem(row, 0, idItem);
 
-        // Stil pentru textul celulelor (Opțional, aliniere la stânga/dreapta)
-        productsTable->item(row, 0)->setTextAlignment(Qt::AlignCenter);
-        productsTable->item(row, 2)->setTextAlignment(Qt::AlignCenter); // Cantitatea centrată
+        productsTable->setItem(row, 1, new QTableWidgetItem(p.nume()));
+
+        auto *cantiItem = new QTableWidgetItem(QString::number(p.cantitate()));
+        cantiItem->setTextAlignment(Qt::AlignCenter);
+        productsTable->setItem(row, 2, cantiItem);
+
+        productsTable->setItem(row, 3, new QTableWidgetItem(
+            QString::number(p.pret(), 'f', 2)));
+
+        int cnt = nrTranz.count(p.id()) ? nrTranz.at(p.id()) : 0;
+        auto *tranzItem = new QTableWidgetItem(QString::number(cnt));
+        tranzItem->setTextAlignment(Qt::AlignCenter);
+        productsTable->setItem(row, 4, tranzItem);
     }
+
+    // ── 5. Reaplică filtrul de căutare activ ─────────────────────────────────
+    applyProductsSearch();
 }
 
 void MainWindow::setupAlertsPage(QWidget *page) {
@@ -467,13 +529,26 @@ void MainWindow::setupAlertsPage(QWidget *page) {
     searchAlertsBar->setMinimumHeight(35);
     searchAlertsBar->setClearButtonEnabled(true);
 
-    // Un buton specific pentru această pagină (ex: pentru a da lista la achiziții)
+    // ComboBox de sortare alerte
+    comboFilterAlerts = new QComboBox();
+    comboFilterAlerts->setObjectName("BtnFilter");
+    comboFilterAlerts->setMinimumHeight(35);
+    comboFilterAlerts->setCursor(Qt::PointingHandCursor);
+    comboFilterAlerts->addItem("▼ Sortare implicită");             // index 0 → Default
+    comboFilterAlerts->addItem("Prag Alertă ↓ Descrescător");      // index 1 → PragDesc
+    comboFilterAlerts->addItem("Prag Alertă ↑ Crescător");         // index 2 → PragCresc
+    comboFilterAlerts->addItem("Cantitate ↑ Crescătoare");         // index 3 → CantiCresc
+    comboFilterAlerts->addItem("Cantitate ↓ Descrescătoare");      // index 4 → CantiDesc
+    comboFilterAlerts->addItem("Raport Cant./Prag ↑ (cel mai critic)"); // index 5 → Raport
+
+    // Un buton specific pentru această pagină
     btnExportReport = new QPushButton("Export");
-    btnExportReport->setObjectName("BtnFilter"); // Refolosim stilul de buton gri
+    btnExportReport->setObjectName("BtnFilter");
     btnExportReport->setMinimumHeight(35);
     btnExportReport->setCursor(Qt::PointingHandCursor);
 
     topBarLayout->addWidget(searchAlertsBar, 4);
+    topBarLayout->addWidget(comboFilterAlerts, 2);
     topBarLayout->addWidget(btnExportReport, 1);
 
     mainLayout->addLayout(topBarLayout);
@@ -496,40 +571,73 @@ void MainWindow::setupAlertsPage(QWidget *page) {
     mainLayout->addWidget(alertsTable);
     populateAlertsTable();
 
-    // --- 3. CĂUTARE DINAMICĂ (Specifică pentru tabelul de alerte) ---
-    connect(searchAlertsBar, &QLineEdit::textChanged, this, [this](const QString &textCautat) {
-        QString textCautatLower = textCautat.toLower();
-        for (int row = 0; row < alertsTable->rowCount(); ++row) {
-            bool match = false;
-            QTableWidgetItem *itemNume = alertsTable->item(row, 1);
-            QTableWidgetItem *itemSku = alertsTable->item(row, 2);
+    // --- 3. CĂUTARE DINAMICĂ ---
+    connect(searchAlertsBar, &QLineEdit::textChanged, this, [this]() { applyAlertsSearch(); });
 
-            if (itemNume && itemNume->text().toLower().contains(textCautatLower)) {
-                match = true;
-            }
-            alertsTable->setRowHidden(row, !match);
-        }
+    // --- 4. SORTARE ---
+    connect(comboFilterAlerts, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, [this](int index) {
+        static const SortAlerte mapare[] = {
+            SortAlerte::Default,
+            SortAlerte::PragDesc,  SortAlerte::PragCresc,
+            SortAlerte::CantiCresc, SortAlerte::CantiDesc,
+            SortAlerte::Raport
+        };
+        m_sortAlerte = mapare[index];
+        populateAlertsTable();
     });
 }
 
-void MainWindow::populateAlertsTable() {
-    // Luăm doar produsele cu stoc sub prag
-    auto listaAlerte = depozit.produseSubPrag();
+void MainWindow::populateAlertsTable()
+{
+    // ── 1. Luăm produsele sub prag ────────────────────────────────────────────
+    std::vector<Produs> listaAlerte = depozit.produseSubPrag();
 
-    alertsTable->setRowCount(0); // Curățăm tabelul
+    // ── 2. Sortăm conform opțiunii curente ───────────────────────────────────
+    switch (m_sortAlerte) {
+    case SortAlerte::PragDesc:
+        std::sort(listaAlerte.begin(), listaAlerte.end(),
+                  [](const Produs &a, const Produs &b){ return a.pragAlerta() > b.pragAlerta(); });
+        break;
+    case SortAlerte::PragCresc:
+        std::sort(listaAlerte.begin(), listaAlerte.end(),
+                  [](const Produs &a, const Produs &b){ return a.pragAlerta() < b.pragAlerta(); });
+        break;
+    case SortAlerte::CantiCresc:
+        std::sort(listaAlerte.begin(), listaAlerte.end(),
+                  [](const Produs &a, const Produs &b){ return a.cantitate() < b.cantitate(); });
+        break;
+    case SortAlerte::CantiDesc:
+        std::sort(listaAlerte.begin(), listaAlerte.end(),
+                  [](const Produs &a, const Produs &b){ return a.cantitate() > b.cantitate(); });
+        break;
+    case SortAlerte::Raport:
+        // Raport cant/prag crescător = cel mai critic (aproape 0) primul
+        // Dacă pragAlertă == 0 → tratăm ca ∞ (produs non-critic)
+        std::sort(listaAlerte.begin(), listaAlerte.end(),
+                  [](const Produs &a, const Produs &b) {
+                      double ra = (a.pragAlerta() > 0) ? (double)a.cantitate() / a.pragAlerta() : 1e18;
+                      double rb = (b.pragAlerta() > 0) ? (double)b.cantitate() / b.pragAlerta() : 1e18;
+                      return ra < rb;
+                  });
+        break;
+    default:
+        break;
+    }
 
-    for (const auto& prod : listaAlerte) {
+    // ── 3. Populăm tabelul ───────────────────────────────────────────────────
+    alertsTable->setRowCount(0);
+
+    for (const Produs &prod : listaAlerte) {
         int row = alertsTable->rowCount();
         alertsTable->insertRow(row);
 
-        // Presupunând că ai funcția getPragAlerta(). Dacă nu ai ID-ul ca string, ajustează cu QString::number()
         alertsTable->setItem(row, 0, new QTableWidgetItem(prod.id()));
         alertsTable->setItem(row, 1, new QTableWidgetItem(prod.nume()));
 
-        // --- COLORAȚIE SPECIALĂ PENTRU ALERTĂ ---
         QTableWidgetItem *itemStoc = new QTableWidgetItem(QString::number(prod.cantitate()));
-        itemStoc->setForeground(QBrush(QColor("#dc3545"))); // Roșu de pericol
-        itemStoc->setFont(QFont("Arial", 10, QFont::Bold)); // Îl facem Bold
+        itemStoc->setForeground(QBrush(QColor("#dc3545")));
+        itemStoc->setFont(QFont("Arial", 10, QFont::Bold));
         itemStoc->setTextAlignment(Qt::AlignCenter);
 
         QTableWidgetItem *itemPrag = new QTableWidgetItem(QString::number(prod.pragAlerta()));
@@ -538,6 +646,9 @@ void MainWindow::populateAlertsTable() {
         alertsTable->setItem(row, 2, itemStoc);
         alertsTable->setItem(row, 3, itemPrag);
     }
+
+    // ── 4. Reaplică filtrul de căutare activ ─────────────────────────────────
+    applyAlertsSearch();
 }
 
 void MainWindow::setupHistoryPage(QWidget *page) {
@@ -719,6 +830,28 @@ void MainWindow::UpdateUI(){
     populateProductsTable();
     populateAlertsTable();
     populateHistoryTable();
+}
+
+void MainWindow::applyProductsSearch()
+{
+    if (!searchBar || !productsTable) return;
+    const QString text = searchBar->text().toLower();
+    for (int row = 0; row < productsTable->rowCount(); ++row) {
+        QTableWidgetItem *item = productsTable->item(row, 1); // coloana Nume
+        bool match = text.isEmpty() || (item && item->text().toLower().contains(text));
+        productsTable->setRowHidden(row, !match);
+    }
+}
+
+void MainWindow::applyAlertsSearch()
+{
+    if (!searchAlertsBar || !alertsTable) return;
+    const QString text = searchAlertsBar->text().toLower();
+    for (int row = 0; row < alertsTable->rowCount(); ++row) {
+        QTableWidgetItem *item = alertsTable->item(row, 1); // coloana Nume
+        bool match = text.isEmpty() || (item && item->text().toLower().contains(text));
+        alertsTable->setRowHidden(row, !match);
+    }
 }
 
 MainWindow::~MainWindow()
