@@ -237,9 +237,13 @@ void MainWindow::openSettings()
 {
     QSettings settings;
 
-    // Pregătim valorile curente pentru pre-popularea dialogului
+    // Pregătim valorile curente pentru pre-popularea dialogului.
+    // Numele depozitului vine din headerul live (sursa de adevăr pentru sesiunea curentă),
+    // nu din QSettings — altfel prima deschidere după un setValue() arăta valoarea veche.
     SettingsData current;
-    current.numeDepozit    = settings.value("depot/name", "Depozit Central").toString();
+    current.numeDepozit    = (m_headerDepotLabel && !m_headerDepotLabel->text().isEmpty())
+                                 ? m_headerDepotLabel->text()
+                                 : settings.value("depot/name", "Depozit Central").toString();
     current.caleDepozit    = m_storagedepozit.caleFisier();
     current.caleTranzactii = m_storagetranzactii.caleFisier();
 

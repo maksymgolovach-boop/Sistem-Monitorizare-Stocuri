@@ -9,6 +9,10 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+    // Necesare pentru QSettings să persiste la aceeași cheie indiferent de platformă
+    a.setOrganizationName("SistemMonitorizare");
+    a.setApplicationName("StocManager");
+
     MainWindow w;
     QFile styleFile(":/styles/styles.qss");
 
