@@ -5,6 +5,7 @@
 #include <QGridLayout>
 #include <QLabel>
 #include <QFrame>
+#include <QCompleter>
 
 TransactionDialog::TransactionDialog(const WarehouseManager& depozit, QWidget *parent)
     : QDialog(parent)
@@ -29,6 +30,16 @@ TransactionDialog::TransactionDialog(const WarehouseManager& depozit, QWidget *p
         updateToggleStyle();
     });
 
+    // ── Tracking selecție produs ──────────────────────────────────────────────
+    // activated(int) se emite când userul alege un item din dropdown sau din popup-ul completer-ului
+    connect(comboProduse, QOverload<int>::of(&QComboBox::activated), this, [this](int index) {
+        m_produsSelectat = (index > 0);   // index 0 = placeholder "— selectează produs —"
+    });
+    // textEdited se emite doar la tastare manuală (nu la setare programatică) → invalidăm selecția
+    connect(comboProduse->lineEdit(), &QLineEdit::textEdited, this, [this]() {
+        m_produsSelectat = false;
+    });
+
     connect(btnConfirm, &QPushButton::clicked, this, [this]() {
         if (valideazaDatele())
             accept();
@@ -42,11 +53,13 @@ bool TransactionDialog::valideazaDatele()
     const QString styleNormal = "";   // QSS-ul global preia controlul
 
     // ── 1. Produs selectat ────────────────────────────────────────────────────
-    if (comboProduse->currentData().toString().isEmpty()) {
+    // m_produsSelectat devine true doar când userul alege explicit din popup/dropdown
+    if (!m_produsSelectat || comboProduse->currentData().toString().isEmpty()) {
         comboProduse->setStyleSheet(styleEroare);
         QMessageBox::warning(this,
                              "Câmp obligatoriu",
-                             "Selectează un produs din listă înainte de a confirma.");
+                             "Selectează un produs din lista de sugestii.\n"
+                             "Poți căuta după nume sau după ID.");
         comboProduse->setFocus();
         return false;
     }
@@ -187,6 +200,18 @@ void TransactionDialog::setupUI(const WarehouseManager& depozit) {
         // Magia Qt: adăugăm textul vizual și ascundem idProdus "în spate"
         comboProduse->addItem(textAfisat, QVariant(idProdus));
     }
+
+    // ── Căutare live după nume sau ID ─────────────────────────────────────────
+    comboProduse->setEditable(true);
+    comboProduse->setInsertPolicy(QComboBox::NoInsert);  // textul tastat nu devine item nou
+    comboProduse->lineEdit()->setPlaceholderText("Caută după nume sau ID...");
+    comboProduse->lineEdit()->setClearButtonEnabled(true);
+
+    // Qt creează un QCompleter implicit la setEditable(true) — îl configurăm
+    QCompleter *completer = comboProduse->completer();
+    completer->setFilterMode(Qt::MatchContains);         // potrivire oriunde în text
+    completer->setCaseSensitivity(Qt::CaseInsensitive);  // case-insensitive
+    completer->setCompletionMode(QCompleter::PopupCompletion);
 
     mainLayout->addWidget(comboProduse);
 

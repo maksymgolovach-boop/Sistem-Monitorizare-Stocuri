@@ -31,10 +31,11 @@ public:
     TransactionData getTransactionData() const;
 
 private:
-    TipTranzactie       m_tipCurent = TipTranzactie::Achizitionare;
+    TipTranzactie       m_tipCurent      = TipTranzactie::Achizitionare;
     QString             m_generatedId;
     QDateTime           m_currentTimestamp;
     const WarehouseManager &m_depozit;   // necesar pentru verificarea stocului la Vânzare
+    bool                m_produsSelectat = false; // true doar când userul alege din popup/dropdown
 
     QPushButton *btnTabAchizitie;
     QPushButton *btnTabVanzare;
