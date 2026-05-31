@@ -113,7 +113,7 @@ void AddProductDialog::setupUI() {
     QGridLayout *grid = new QGridLayout();
     grid->setSpacing(15);
 
-    QLabel *lblCant = new QLabel("Cantitate inițială <font color='#dc3545'>*</font>");
+    QLabel *lblCant = new QLabel("Cantitate inițială");
     lblCant->setStyleSheet("font-weight: bold; color: #495057;");
     spinCantitate = new QSpinBox();
     spinCantitate->setMaximum(100000);
