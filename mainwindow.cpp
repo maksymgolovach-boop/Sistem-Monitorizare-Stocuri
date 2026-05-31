@@ -505,7 +505,7 @@ void MainWindow::populateDashboard(const std::vector<Produs> &alerte)
             statusItem = new QTableWidgetItem("✓ OK");
             statusItem->setForeground(QBrush(QColor("#198754")));
         }
-        statusItem->setFont(QFont("Arial", 9, QFont::Bold));
+        statusItem->setFont([]{ QFont f("Arial", 9, QFont::Bold); f.setStyleHint(QFont::SansSerif); return f; }());
         statusItem->setTextAlignment(Qt::AlignCenter);
         dashboardTable->setItem(row, 4, statusItem);
     }
@@ -884,7 +884,7 @@ void MainWindow::populateAlertsTable(const std::vector<Produs> &alerte)
 
         QTableWidgetItem *itemStoc = new QTableWidgetItem(QString::number(prod.cantitate()));
         itemStoc->setForeground(QBrush(QColor("#dc3545")));
-        itemStoc->setFont(QFont("Arial", 10, QFont::Bold));
+        itemStoc->setFont([]{ QFont f("Arial", 10, QFont::Bold); f.setStyleHint(QFont::SansSerif); return f; }());
         itemStoc->setTextAlignment(Qt::AlignCenter);
 
         QTableWidgetItem *itemPrag = new QTableWidgetItem(QString::number(prod.pragAlerta()));
@@ -1077,7 +1077,7 @@ void MainWindow::populateHistoryTable() {
 
         // 2. ID Tranzacție (folosim font monospace pentru aspect tehnic)
         QTableWidgetItem *idItem = new QTableWidgetItem(t.id());
-        idItem->setFont(QFont("Monospace", 9));
+        idItem->setFont([]{ QFont f("Courier New", 9); f.setStyleHint(QFont::Monospace); return f; }());
         historyTable->setItem(row, 1, idItem);
 
         // 3. Produs
@@ -1092,7 +1092,7 @@ void MainWindow::populateHistoryTable() {
             tipItem->setText("➖ VÂNZARE");
             tipItem->setForeground(QBrush(QColor("#dc3545"))); // Roșu
         }
-        tipItem->setFont(QFont("Arial", 9, QFont::Bold));
+        tipItem->setFont([]{ QFont f("Arial", 9, QFont::Bold); f.setStyleHint(QFont::SansSerif); return f; }());
         historyTable->setItem(row, 3, tipItem);
 
         // 5. Companie

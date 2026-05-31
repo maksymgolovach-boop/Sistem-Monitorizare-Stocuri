@@ -1,6 +1,10 @@
 QWidget {
     background-color: #f8f9fa;
-    font-family: "Segoe UI", sans-serif;
+    /* Lanț de fallback: Windows → Linux GNOME → Linux KDE → generic
+       "Noto Color Emoji" și "Segoe UI Emoji" asigură randarea emoji
+       pe Linux resp. Windows fără fonturi suplimentare.            */
+    font-family: "Segoe UI", "Ubuntu", "Cantarell", "Noto Sans",
+                 "Noto Color Emoji", "Segoe UI Emoji", sans-serif;
     color: #333;
 }
 

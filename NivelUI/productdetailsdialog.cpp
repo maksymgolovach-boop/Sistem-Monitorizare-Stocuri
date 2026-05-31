@@ -207,7 +207,7 @@ void ProductDetailsDialog::setupUI(const Produs                       &produs,
                     t.tip() == TipTranzactie::Achizitionare ? "➕ ACHIZIȚIE" : "➖ VÂNZARE");
                 tipItem->setForeground(QBrush(QColor(
                     t.tip() == TipTranzactie::Achizitionare ? "#198754" : "#dc3545")));
-                tipItem->setFont(QFont("Arial", 9, QFont::Bold));
+                tipItem->setFont([]{ QFont f("Arial", 9, QFont::Bold); f.setStyleHint(QFont::SansSerif); return f; }());
                 tbl->setItem(row, 1, tipItem);
 
                 tbl->setItem(row, 2, new QTableWidgetItem(t.numeCompanie()));

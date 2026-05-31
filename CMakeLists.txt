@@ -129,3 +129,8 @@ register_unit_test(tst_warehousemanager)
 register_unit_test(tst_tranzactiestorage)
 register_unit_test(tst_jsonstorage)
 register_unit_test(tst_exportmanager)
+# tst_exportmanager folosește QApplication (QTableWidget + QPrinter).
+# Pe Linux headless (CI fără display), setăm platform offscreen automat.
+set_tests_properties(tst_exportmanager PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+)
