@@ -36,6 +36,7 @@ private:
     QDateTime           m_currentTimestamp;
     const WarehouseManager &m_depozit;   // necesar pentru verificarea stocului la Vânzare
     bool                m_produsSelectat = false; // true doar când userul alege din popup/dropdown
+    QString             m_idProdusCurent;
 
     QPushButton *btnTabAchizitie;
     QPushButton *btnTabVanzare;

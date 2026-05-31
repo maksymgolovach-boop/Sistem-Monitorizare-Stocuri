@@ -222,7 +222,7 @@ void MainWindow::updateHeaderBadges(const std::vector<Produs> &alerte)
     // Alert badge: verde dacă totul OK, roșu dacă există alerte
     m_headerAlertBadge->setText(
         nrAlerte > 0
-            ? QString("⚠  %1 alertă%2").arg(nrAlerte).arg(nrAlerte == 1 ? "" : "e")
+            ? QString("⚠  %1 alert%2").arg(nrAlerte).arg(nrAlerte == 1 ? "a" : "e")
             : QString("✓  Stoc OK"));
 
     const QString alertStyle = nrAlerte > 0
@@ -1207,7 +1207,8 @@ void MainWindow::applyAlertsSearch()
     const QString text = searchAlertsBar->text().toLower();
     for (int row = 0; row < alertsTable->rowCount(); ++row) {
         QTableWidgetItem *item = alertsTable->item(row, 1); // coloana Nume
-        bool match = text.isEmpty() || (item && item->text().toLower().contains(text));
+        QTableWidgetItem *item2 = productsTable->item(row, 0); // coloana ID
+        bool match = text.isEmpty() || (item && item->text().toLower().contains(text)) || (item2 && item2->text().toLower().contains(text));
         alertsTable->setRowHidden(row, !match);
     }
 }

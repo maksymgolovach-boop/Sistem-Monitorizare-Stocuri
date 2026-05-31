@@ -6,6 +6,8 @@
 #include <QLabel>
 #include <QFrame>
 #include <QCompleter>
+#include <QStandardItemModel>
+#include <qabstractitemview.h>
 
 TransactionDialog::TransactionDialog(const WarehouseManager& depozit, QWidget *parent)
     : QDialog(parent)
@@ -95,7 +97,7 @@ bool TransactionDialog::valideazaDatele()
     if (spinPret->value() <= 0.0) {
         spinPret->setStyleSheet(styleEroare);
         QMessageBox::warning(this,
-                             "Preț invalid",
+                             "Preț nevalid",
                              "Prețul unitar trebuie să fie mai mare decât 0 RON.");
         spinPret->setFocus();
         return false;
@@ -113,7 +115,7 @@ bool TransactionDialog::valideazaDatele()
     }
     editCompanie->setStyleSheet(styleNormal);
 
-    // ── 5. Stoc suficient (doar la Vânzare) ───────────────────────────────────
+    // ── 5. Stoc insuficient (doar la Vânzare) ───────────────────────────────────
     if (m_tipCurent == TipTranzactie::Vanzare) {
         const QString produsId = comboProduse->currentData().toString();
         const Produs *p = m_depozit.gasesteProdusDupaId(produsId);
@@ -206,21 +208,19 @@ void TransactionDialog::setupUI(const WarehouseManager& depozit) {
     comboProduse = new QComboBox();
     comboProduse->setObjectName("ModernInput");
 
-    // Placeholder-ul primește un ID gol ("") ca să știm că nu s-a selectat nimic
-    comboProduse->addItem("— selectează produs —", QVariant(""));
+    QStandardItemModel *model = new QStandardItemModel(this);
 
-    // Iterăm prin unordered_map. pair.first este cheia (QString), pair.second este Produsul
-    const auto& hartaProduse = depozit.produse();
+    QStandardItem *item = new QStandardItem(" --- Selecteaza produs --- ");
+    item->setData(-1, Qt::UserRole);
+    model->appendRow(item);
 
-    for(auto it = hartaProduse.begin(); it != hartaProduse.end(); ++it) {
-        const QString& idProdus = it->first; // Cheia din map
-        const Produs& p = it->second;        // Valoarea (obiectul)
-
-        QString textAfisat = p.nume() + " (ID: " + p.id() + ")";
-
-        // Magia Qt: adăugăm textul vizual și ascundem idProdus "în spate"
-        comboProduse->addItem(textAfisat, QVariant(idProdus));
+    for (const auto& [id, p] : depozit.produse()) {
+        QStandardItem *item = new QStandardItem(p.nume() + " (" + p.id() + ")");
+        item->setData(id, Qt::UserRole); // Salvăm ID-ul "în spate"
+        model->appendRow(item);
     }
+
+    comboProduse->setModel(model);
 
     // ── Căutare live după nume sau ID ─────────────────────────────────────────
     comboProduse->setEditable(true);
@@ -240,10 +240,12 @@ void TransactionDialog::setupUI(const WarehouseManager& depozit) {
     QGridLayout *amountGrid = new QGridLayout();
     spinCantitate = new QSpinBox();
     spinCantitate->setSuffix(" buc.");
+    spinCantitate->setMaximum(100000);
     spinCantitate->setObjectName("ModernInput");
 
     spinPret = new QDoubleSpinBox();
     spinPret->setSuffix(" RON");
+    spinPret->setMaximum(100000);
     spinPret->setObjectName("ModernInput");
 
     amountGrid->addWidget(new QLabel("Cantitate <font color='red'>*</font>"), 0, 0);
