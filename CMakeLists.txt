@@ -93,3 +93,39 @@ install(TARGETS Sistem_Monitorizare_Stocuri
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(Sistem_Monitorizare_Stocuri)
 endif()
+
+# ── Teste unitare ──────────────────────────────────────────────────────────────
+enable_testing()
+
+set(TEST_MODEL_SRCS
+    LibrarieModele/Produs.cpp
+    ManagerStocare/jsonstorage.cpp
+    NivelStocareDate/warehousemanager.cpp
+    exportmanager.cpp
+)
+
+set(TEST_INCLUDE_DIRS
+    ${CMAKE_CURRENT_SOURCE_DIR}/LibrarieModele
+    ${CMAKE_CURRENT_SOURCE_DIR}/ManagerStocare
+    ${CMAKE_CURRENT_SOURCE_DIR}/NivelStocareDate
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+function(register_unit_test TEST_NAME)
+    qt_add_executable(${TEST_NAME} tests/${TEST_NAME}.cpp ${TEST_MODEL_SRCS})
+    target_include_directories(${TEST_NAME} PRIVATE ${TEST_INCLUDE_DIRS})
+    target_link_libraries(${TEST_NAME} PRIVATE
+        Qt${QT_VERSION_MAJOR}::Test
+        Qt${QT_VERSION_MAJOR}::Widgets
+        Qt${QT_VERSION_MAJOR}::PrintSupport
+    )
+    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+endfunction()
+
+register_unit_test(tst_produs)
+register_unit_test(tst_tranzactie)
+register_unit_test(tst_warehousemanager)
+register_unit_test(tst_tranzactiestorage)
+register_unit_test(tst_jsonstorage)
+register_unit_test(tst_exportmanager)
